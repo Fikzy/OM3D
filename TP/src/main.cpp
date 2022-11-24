@@ -87,7 +87,7 @@ std::unique_ptr<Scene> create_default_scene() {
     auto scene = std::make_unique<Scene>();
 
     // Load default cube model
-    auto result = Scene::from_gltf(std::string(data_path) + "cube.glb");
+    auto result = Scene::from_gltf(std::string(data_path) + "forest.glb");
     ALWAYS_ASSERT(result.is_ok, "Unable to load default scene");
     scene = std::move(result.value);
 
@@ -128,6 +128,9 @@ int main(int, char**) {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
     init_graphics();
+
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
 
     ImGuiRenderer imgui(window);
 
