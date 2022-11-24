@@ -1,2 +1,4 @@
 /TP/build/
 *.user
+*.pdb
+.vscode
