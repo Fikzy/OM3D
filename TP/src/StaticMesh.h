@@ -25,6 +25,9 @@ class StaticMesh : NonCopyable {
 
         void draw() const;
 
+    public:
+        float radius;
+
     private:
         TypedBuffer<Vertex> _vertex_buffer;
         TypedBuffer<u32> _index_buffer;

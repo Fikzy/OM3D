@@ -3,6 +3,7 @@
 
 #include <StaticMesh.h>
 #include <Material.h>
+#include <Camera.h>
 
 #include <memory>
 
@@ -19,6 +20,8 @@ class SceneObject : NonCopyable {
 
         void set_transform(const glm::mat4& tr);
         const glm::mat4& transform() const;
+
+        bool in_frustum(const Frustum& frustum, const Camera& camera) const;
 
     private:
         glm::mat4 _transform = glm::mat4(1.0f);

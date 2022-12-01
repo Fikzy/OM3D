@@ -2,11 +2,23 @@
 
 #include <glad/glad.h>
 
+#include <algorithm>
+#include <glm/glm.hpp>
+
 namespace OM3D {
 
 StaticMesh::StaticMesh(const MeshData& data) :
     _vertex_buffer(data.vertices),
     _index_buffer(data.indices) {
+
+    glm::vec3 center = glm::vec3(0.0f);
+    
+    const auto cmp = [center](const Vertex v1, const Vertex v2) {
+        return glm::length(v1.position - center) < glm::length(v2.position - center);
+    };
+    const auto v = *std::max_element(data.vertices.begin(), data.vertices.end(), cmp);
+
+    radius = glm::length(v.position - center);
 }
 
 void StaticMesh::draw() const {
