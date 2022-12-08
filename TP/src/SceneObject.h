@@ -23,6 +23,9 @@ class SceneObject : NonCopyable {
 
         bool in_frustum(const Frustum& frustum, const Camera& camera) const;
 
+        const auto get_material() const { return _material; }
+        const auto get_mesh() const { return _mesh; }
+
     private:
         glm::mat4 _transform = glm::mat4(1.0f);
 

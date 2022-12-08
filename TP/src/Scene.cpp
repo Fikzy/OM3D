@@ -4,6 +4,9 @@
 
 #include <shader_structs.h>
 
+#include <algorithm>
+#include <unordered_map>
+
 namespace OM3D {
 
 Scene::Scene() {
@@ -47,10 +50,27 @@ void Scene::render(const Camera& camera) const {
 
     const auto frustum = camera.build_frustum();
 
-    // Render every object
-    for(const SceneObject& obj : _objects) {
+    auto map = std::unordered_map<Material*, std::vector<const SceneObject*>>();
+    for (const auto &obj : _objects) {
+        auto material_ptr = obj.get_material().get();
+        
         if (obj.in_frustum(frustum, camera))
-            obj.render();
+            map[material_ptr].push_back(&obj);
+    }
+
+    // Render every object
+    for (const auto& pair : map) {
+        const auto& material = pair.first;
+        const auto& objects = pair.second;
+
+        // FIXME: actually call glDrawArraysInstanced
+        for (const SceneObject* obj : objects) {
+            material->set_uniform(HASH("model"), obj->transform());
+            material->bind();
+
+            auto mesh = obj->get_mesh();
+            mesh->draw();
+        }
     }
 }
 
