@@ -60,3 +60,8 @@ vec3 unpack_normal_map(vec2 normal) {
     return vec3(normal, 1.0 - sqrt(dot(normal, normal)));
 }
 
+vec3 unproject(vec2 uv, float depth, mat4 inv_viewproj) {
+    const vec3 ndc = vec3(uv * 2.0 - vec2(1.0), depth);
+    const vec4 p = inv_viewproj * vec4(ndc, 1.0);
+    return p.xyz / p.w;
+}

@@ -11,6 +11,7 @@
 #include <Texture.h>
 #include <Framebuffer.h>
 #include <ImGuiRenderer.h>
+#include <Material.h>
 
 #include <imgui/imgui.h>
 
@@ -137,13 +138,18 @@ int main(int, char**) {
     std::unique_ptr<Scene> scene = create_default_scene();
     SceneView scene_view(scene.get());
 
-    auto tonemap_program = Program::from_file("tonemap.comp");
+    // auto tonemap_program = Program::from_file("tonemap.comp");
+    auto gbuffer_program = Program::from_files("lit.frag", "screen.vert");
 
     Texture depth(window_size, ImageFormat::Depth32_FLOAT);
     Texture lit(window_size, ImageFormat::RGBA16_FLOAT);
-    Texture color(window_size, ImageFormat::RGBA8_UNORM);
+    // Texture color(window_size, ImageFormat::RGBA8_UNORM);
     Framebuffer main_framebuffer(&depth, std::array{&lit});
-    Framebuffer tonemap_framebuffer(nullptr, std::array{&color});
+    // Framebuffer tonemap_framebuffer(nullptr, std::array{&color});
+
+    Texture albedo(window_size, ImageFormat::RGBA8_sRGB);
+    Texture normal(window_size, ImageFormat::RGBA8_UNORM);
+    Framebuffer gbuffer(&depth, std::array{&albedo, &normal});
 
     for(;;) {
         glfwPollEvents();
@@ -157,22 +163,34 @@ int main(int, char**) {
             process_inputs(window, scene_view.camera());
         }
 
-        // Render the scene
+        // Render the scene into the gbuffer
         {
-            main_framebuffer.bind();
+            // main_framebuffer.bind();
+            gbuffer.bind();
             scene_view.render();
         }
 
-        // Apply a tonemap in compute shader
+        // Compute lighting from the gbuffer
         {
-            tonemap_program->bind();
-            lit.bind(0);
-            color.bind_as_image(1, AccessType::WriteOnly);
-            glDispatchCompute(align_up_to(window_size.x, 8), align_up_to(window_size.y, 8), 1);
+            main_framebuffer.bind();
+            albedo.bind(0);
+            normal.bind(1);
+            depth.bind(2);
+            gbuffer_program->bind();
+            glDrawArrays(GL_TRIANGLES, 0, 3);
         }
+
+        // // Apply a tonemap in compute shader
+        // {
+        //     tonemap_program->bind();
+        //     lit.bind(0);
+        //     // color.bind_as_image(1, AccessType::WriteOnly);
+        //     glDispatchCompute(align_up_to(window_size.x, 8), align_up_to(window_size.y, 8), 1);
+        // }
+
         // Blit tonemap result to screen
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        tonemap_framebuffer.blit();
+        main_framebuffer.blit();
 
         // GUI
         imgui.start();
