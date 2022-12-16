@@ -20,22 +20,24 @@ void Scene::add_object(PointLight obj) {
     _point_lights.emplace_back(std::move(obj));
 }
 
-void Scene::render(const Camera& camera) const {
+std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(const Camera& camera) const {
     // Fill and bind frame data buffer
-    TypedBuffer<shader::FrameData> buffer(nullptr, 1);
+    const auto buffer = std::make_shared<TypedBuffer<shader::FrameData>>(nullptr, 1);
     {
-        auto mapping = buffer.map(AccessType::WriteOnly);
+        auto mapping = buffer->map(AccessType::WriteOnly);
         mapping[0].camera.view_proj = camera.view_proj_matrix();
         mapping[0].point_light_count = u32(_point_lights.size());
         mapping[0].sun_color = glm::vec3(1.0f, 1.0f, 1.0f);
         mapping[0].sun_dir = glm::normalize(_sun_direction);
     }
-    buffer.bind(BufferUsage::Uniform, 0);
+    return buffer;
+}
 
+std::shared_ptr<TypedBuffer<shader::PointLight>> Scene::get_lights_buffer() const {
     // Fill and bind lights buffer
-    TypedBuffer<shader::PointLight> light_buffer(nullptr, std::max(_point_lights.size(), size_t(1)));
+    const auto light_buffer = std::make_shared<TypedBuffer<shader::PointLight>>(nullptr, std::max(_point_lights.size(), size_t(1)));
     {
-        auto mapping = light_buffer.map(AccessType::WriteOnly);
+        auto mapping = light_buffer->map(AccessType::WriteOnly);
         for(size_t i = 0; i != _point_lights.size(); ++i) {
             const auto& light = _point_lights[i];
             mapping[i] = {
@@ -46,7 +48,15 @@ void Scene::render(const Camera& camera) const {
             };
         }
     }
-    light_buffer.bind(BufferUsage::Storage, 1);
+    return light_buffer;
+}
+
+void Scene::render(const Camera& camera) const {
+    const auto framedata_buffer = get_framedata_buffer(camera);
+    framedata_buffer->bind(BufferUsage::Uniform, 0);
+
+    const auto lights_buffer = get_lights_buffer();
+    lights_buffer->bind(BufferUsage::Storage, 1);
 
     const auto frustum = camera.build_frustum();
 

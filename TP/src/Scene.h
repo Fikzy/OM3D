@@ -5,6 +5,8 @@
 #include <PointLight.h>
 #include <Camera.h>
 
+#include <shader_structs.h>
+
 #include <vector>
 #include <memory>
 
@@ -16,6 +18,9 @@ class Scene : NonMovable {
         Scene();
 
         static Result<std::unique_ptr<Scene>> from_gltf(const std::string& file_name);
+
+        std::shared_ptr<TypedBuffer<shader::FrameData>> get_framedata_buffer(const Camera& camera) const;
+        std::shared_ptr<TypedBuffer<shader::PointLight>> get_lights_buffer() const;
 
         void render(const Camera& camera) const;
 

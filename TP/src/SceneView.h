@@ -13,6 +13,8 @@ class SceneView {
         Camera& camera();
         const Camera& camera() const;
 
+        const Scene* scene() const;
+
         void render() const;
 
     private:
