@@ -2,23 +2,11 @@
 
 #include "utils.glsl"
 
-// fragment shader of the main lighting pass
-
 // #define DEBUG_NORMAL
 
 layout(location = 0) out vec4 out_color;
 
-// layout(location = 0) in vec3 in_normal;
-// layout(location = 1) in vec2 in_uv;
-// layout(location = 2) in vec3 in_color;
-// layout(location = 3) in vec3 in_position;
-// layout(location = 4) in vec3 in_tangent;
-// layout(location = 5) in vec3 in_bitangent;
-
 layout(location = 0) in vec2 in_uv;
-
-// layout(binding = 0) uniform sampler2D in_texture;
-// layout(binding = 1) uniform sampler2D in_normal_texture;
 
 layout(binding = 0) uniform sampler2D in_albedo_texture;
 layout(binding = 1) uniform sampler2D in_normal_texture;
@@ -37,6 +25,7 @@ const vec3 ambient = vec3(0.0);
 void main() {
     vec3 albedo = texelFetch(in_albedo_texture, ivec2(gl_FragCoord.xy), 0).rgb;
     vec3 normal = texelFetch(in_normal_texture, ivec2(gl_FragCoord.xy), 0).xyz;
+    normal = normalize(normal * 2.0 - 1.0);
     float depth = texelFetch(in_depth_texture, ivec2(gl_FragCoord.xy), 0).r;
 
     vec3 position = unproject(gl_FragCoord.xy, depth, inverse(frame.camera.view_proj));
@@ -58,7 +47,11 @@ void main() {
         acc += light.color * (NoL * att);
     }
 
-    out_color = vec4(albedo * acc, 1.0);
+    // out_color = vec4(albedo * acc, 1.0);
+
+    out_color = vec4(albedo, 1.0);
+    // out_color = vec4(normal, 1.0);
+    // out_color = vec4(vec3(depth), 1.0);
 
 #ifdef DEBUG_NORMAL
     out_color = vec4(normal * 0.5 + 0.5, 1.0);

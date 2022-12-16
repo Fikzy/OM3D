@@ -58,6 +58,12 @@ void process_inputs(GLFWwindow* window, Camera& camera) {
         if(glfwGetKey(window, 'A') == GLFW_PRESS) {
             movement -= camera.right();
         }
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            movement += camera.up();
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            movement -= camera.up();
+        }
 
         float speed = 10.0f;
         if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
@@ -138,18 +144,23 @@ int main(int, char**) {
     std::unique_ptr<Scene> scene = create_default_scene();
     SceneView scene_view(scene.get());
 
-    // auto tonemap_program = Program::from_file("tonemap.comp");
-    auto gbuffer_program = Program::from_files("lit.frag", "screen.vert");
+    auto albedo = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_sRGB);
+    auto normal = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM);
+    auto depth = std::make_shared<Texture>(window_size, ImageFormat::Depth32_FLOAT);
+    Framebuffer gbuffer(depth.get(), std::array{albedo.get(), normal.get()});
 
-    Texture depth(window_size, ImageFormat::Depth32_FLOAT);
-    Texture lit(window_size, ImageFormat::RGBA16_FLOAT);
-    // Texture color(window_size, ImageFormat::RGBA8_UNORM);
-    Framebuffer main_framebuffer(&depth, std::array{&lit});
-    // Framebuffer tonemap_framebuffer(nullptr, std::array{&color});
+    auto lit = std::make_shared<Texture>(window_size, ImageFormat::RGBA16_FLOAT);
+    Framebuffer main_framebuffer(nullptr, std::array{lit.get()});
 
-    Texture albedo(window_size, ImageFormat::RGBA8_sRGB);
-    Texture normal(window_size, ImageFormat::RGBA8_UNORM);
-    Framebuffer gbuffer(&depth, std::array{&albedo, &normal});
+    auto gbuffer_material = Material();
+    gbuffer_material.set_program(Program::from_files("lit.frag", "screen.vert"));
+
+    gbuffer_material.set_texture(0u, albedo);
+    gbuffer_material.set_texture(1u, normal);
+    gbuffer_material.set_texture(2u, depth);
+
+    gbuffer_material.set_blend_mode(BlendMode::Alpha); // Disable backface culling?
+    // gbuffer_material.set_depth_test_mode(DepthTestMode::Reversed);
 
     for(;;) {
         glfwPollEvents();
@@ -165,28 +176,21 @@ int main(int, char**) {
 
         // Render the scene into the gbuffer
         {
-            // main_framebuffer.bind();
             gbuffer.bind();
             scene_view.render();
         }
 
         // Compute lighting from the gbuffer
         {
+            scene_view.scene()->get_framedata_buffer(scene_view.camera())
+                ->bind(BufferUsage::Uniform, 0);
+            scene_view.scene()->get_lights_buffer()
+                ->bind(BufferUsage::Uniform, 1);
+            gbuffer_material.bind();
+
             main_framebuffer.bind();
-            albedo.bind(0);
-            normal.bind(1);
-            depth.bind(2);
-            gbuffer_program->bind();
             glDrawArrays(GL_TRIANGLES, 0, 3);
         }
-
-        // // Apply a tonemap in compute shader
-        // {
-        //     tonemap_program->bind();
-        //     lit.bind(0);
-        //     // color.bind_as_image(1, AccessType::WriteOnly);
-        //     glDispatchCompute(align_up_to(window_size.x, 8), align_up_to(window_size.y, 8), 1);
-        // }
 
         // Blit tonemap result to screen
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
