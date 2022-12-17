@@ -159,30 +159,20 @@ int main(int, char**) {
     auto trash_depth = std::make_shared<Texture>(window_size, ImageFormat::Depth32_FLOAT);
     Framebuffer main_framebuffer(trash_depth.get(), std::array{lit.get()});
 
+    auto ds_program = Program::from_files("lit.frag", "screen.vert");
     auto ds_material = std::make_shared<Material>();
-    ds_material->set_program(Program::from_files("lit.frag", "screen.vert"));
+    ds_material->set_program(ds_program);
     ds_material->set_texture(0u, albedo);
     ds_material->set_texture(1u, normal);
     ds_material->set_texture(2u, depth);
     ds_material->set_blend_mode(BlendMode::Alpha); // Disable backface culling?
     // gbuffer_material->set_depth_test_mode(DepthTestMode::Reversed);
 
-    auto debug_albedo = std::make_shared<Material>();
-    debug_albedo->set_program(Program::from_files("debug_albedo.frag", "screen.vert"));
-    debug_albedo->set_texture(0u, albedo);
-    debug_albedo->set_blend_mode(BlendMode::Alpha);
-
-    auto debug_normal = std::make_shared<Material>();
-    debug_normal->set_program(Program::from_files("debug_normal.frag", "screen.vert"));
-    debug_normal->set_texture(0u, normal);
-    debug_normal->set_blend_mode(BlendMode::Alpha);
-
-    auto debug_depth = std::make_shared<Material>();
-    debug_depth->set_program(Program::from_files("debug_depth.frag", "screen.vert"));
-    debug_depth->set_texture(0u, depth);
-    debug_depth->set_blend_mode(BlendMode::Alpha);
-
-    auto debug_shaders = std::array{debug_albedo, debug_normal, debug_depth};
+    auto debug_programs = std::array{
+        Program::from_files("lit.frag", "screen.vert", {"DEBUG_ALBEDO"}),
+        Program::from_files("lit.frag", "screen.vert", {"DEBUG_NORMAL"}),
+        Program::from_files("lit.frag", "screen.vert", {"DEBUG_DEPTH"}),
+    };
 
     for(;;) {
         glfwPollEvents();
@@ -202,15 +192,14 @@ int main(int, char**) {
             scene_view.render();
         }
 
-        if (debug)
-        {
-            debug_shaders[debug_shader]->bind();
-            main_framebuffer.bind();
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+        if (debug) {
+            ds_material->set_program(debug_programs[debug_shader]);
+        } else {
+            ds_material->set_program(ds_program);
         }
-        else
+
+        // Compute lighting from the gbuffer
         {
-            // Compute lighting from the gbuffer
             const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
             framedata_buffer->bind(BufferUsage::Uniform, 0);
 
