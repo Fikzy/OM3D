@@ -28,7 +28,7 @@ void main() {
     normal = normalize(normal * 2.0 - 1.0);
     float depth = texelFetch(in_depth_texture, ivec2(gl_FragCoord.xy), 0).r;
 
-    vec3 position = unproject(gl_FragCoord.xy, depth, inverse(frame.camera.view_proj));
+    vec3 position = unproject(in_uv, depth, inverse(frame.camera.view_proj));
 
     vec3 acc = frame.sun_color * max(0.0, dot(frame.sun_dir, normal)) + ambient;
 
@@ -47,11 +47,7 @@ void main() {
         acc += light.color * (NoL * att);
     }
 
-    // out_color = vec4(albedo * acc, 1.0);
-
-    out_color = vec4(albedo, 1.0);
-    // out_color = vec4(normal, 1.0);
-    // out_color = vec4(vec3(depth), 1.0);
+    out_color = vec4(albedo * acc, 1.0);
 
 #ifdef DEBUG_NORMAL
     out_color = vec4(normal * 0.5 + 0.5, 1.0);

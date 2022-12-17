@@ -140,9 +140,15 @@ int main(int, char**) {
     glFrontFace(GL_CCW);
 
     ImGuiRenderer imgui(window);
+    bool debug = false;
+    int debug_shader = 0;
 
     std::unique_ptr<Scene> scene = create_default_scene();
     SceneView scene_view(scene.get());
+
+    auto tonemap_program = Program::from_file("tonemap.comp");
+    auto color = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM);
+    Framebuffer tonemap_framebuffer(nullptr, std::array{color.get()});
 
     auto albedo = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_sRGB);
     auto normal = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM);
@@ -150,17 +156,33 @@ int main(int, char**) {
     Framebuffer gbuffer(depth.get(), std::array{albedo.get(), normal.get()});
 
     auto lit = std::make_shared<Texture>(window_size, ImageFormat::RGBA16_FLOAT);
-    Framebuffer main_framebuffer(nullptr, std::array{lit.get()});
+    auto trash_depth = std::make_shared<Texture>(window_size, ImageFormat::Depth32_FLOAT);
+    Framebuffer main_framebuffer(trash_depth.get(), std::array{lit.get()});
 
-    auto gbuffer_material = Material();
-    gbuffer_material.set_program(Program::from_files("lit.frag", "screen.vert"));
+    auto ds_material = std::make_shared<Material>();
+    ds_material->set_program(Program::from_files("lit.frag", "screen.vert"));
+    ds_material->set_texture(0u, albedo);
+    ds_material->set_texture(1u, normal);
+    ds_material->set_texture(2u, depth);
+    ds_material->set_blend_mode(BlendMode::Alpha); // Disable backface culling?
+    // gbuffer_material->set_depth_test_mode(DepthTestMode::Reversed);
 
-    gbuffer_material.set_texture(0u, albedo);
-    gbuffer_material.set_texture(1u, normal);
-    gbuffer_material.set_texture(2u, depth);
+    auto debug_albedo = std::make_shared<Material>();
+    debug_albedo->set_program(Program::from_files("debug_albedo.frag", "screen.vert"));
+    debug_albedo->set_texture(0u, albedo);
+    debug_albedo->set_blend_mode(BlendMode::Alpha);
 
-    gbuffer_material.set_blend_mode(BlendMode::Alpha); // Disable backface culling?
-    // gbuffer_material.set_depth_test_mode(DepthTestMode::Reversed);
+    auto debug_normal = std::make_shared<Material>();
+    debug_normal->set_program(Program::from_files("debug_normal.frag", "screen.vert"));
+    debug_normal->set_texture(0u, normal);
+    debug_normal->set_blend_mode(BlendMode::Alpha);
+
+    auto debug_depth = std::make_shared<Material>();
+    debug_depth->set_program(Program::from_files("debug_depth.frag", "screen.vert"));
+    debug_depth->set_texture(0u, depth);
+    debug_depth->set_blend_mode(BlendMode::Alpha);
+
+    auto debug_shaders = std::array{debug_albedo, debug_normal, debug_depth};
 
     for(;;) {
         glfwPollEvents();
@@ -180,21 +202,36 @@ int main(int, char**) {
             scene_view.render();
         }
 
-        // Compute lighting from the gbuffer
+        if (debug)
         {
-            scene_view.scene()->get_framedata_buffer(scene_view.camera())
-                ->bind(BufferUsage::Uniform, 0);
-            scene_view.scene()->get_lights_buffer()
-                ->bind(BufferUsage::Uniform, 1);
-            gbuffer_material.bind();
+            debug_shaders[debug_shader]->bind();
+            main_framebuffer.bind();
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+        }
+        else
+        {
+            // Compute lighting from the gbuffer
+            const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
+            framedata_buffer->bind(BufferUsage::Uniform, 0);
 
+            const auto lights_buffer = scene_view.scene()->get_lights_buffer();
+            lights_buffer->bind(BufferUsage::Storage, 1);
+
+            ds_material->bind();
             main_framebuffer.bind();
             glDrawArrays(GL_TRIANGLES, 0, 3);
         }
 
-        // Blit tonemap result to screen
+        // Apply a tonemap in compute shader
+        {
+            tonemap_program->bind();
+            lit->bind(0);
+            color->bind_as_image(1, AccessType::WriteOnly);
+            glDispatchCompute(align_up_to(window_size.x, 8), align_up_to(window_size.y, 8), 1);
+        }
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        main_framebuffer.blit();
+        tonemap_framebuffer.blit();
 
         // GUI
         imgui.start();
@@ -209,6 +246,16 @@ int main(int, char**) {
                     scene_view = SceneView(scene.get());
                 }
             }
+            ImGui::BeginGroup();
+            ImGui::Text("Debug shader");
+            ImGui::Checkbox("Debug", &debug);
+            if (debug)
+            {
+                ImGui::RadioButton("Albedo", &debug_shader, 0);
+                ImGui::RadioButton("Normal", &debug_shader, 1);
+                ImGui::RadioButton("Depth", &debug_shader, 2);
+            }
+            ImGui::EndGroup();
         }
         imgui.finish();
 
