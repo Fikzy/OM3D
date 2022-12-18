@@ -23,7 +23,9 @@ class StaticMesh : NonCopyable {
 
         StaticMesh(const MeshData& data);
 
+        void setup() const;
         void draw() const;
+        void draw_instanced(size_t count) const;
 
     public:
         float radius;

@@ -18,3 +18,7 @@ struct PointLight {
     vec3 color;
     float padding_1;
 };
+
+struct Model {
+    mat4 transform;
+};

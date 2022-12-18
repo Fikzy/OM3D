@@ -73,14 +73,21 @@ void Scene::render(const Camera& camera) const {
         const auto& material = pair.first;
         const auto& objects = pair.second;
 
-        // FIXME: actually call glDrawArraysInstanced
-        for (const SceneObject* obj : objects) {
-            material->set_uniform(HASH("model"), obj->transform());
-            material->bind();
-
-            auto mesh = obj->get_mesh();
-            mesh->draw();
+        const auto transform_buffer = std::make_shared<TypedBuffer<shader::Model>>(nullptr, std::max(objects.size(), size_t(1)));
+        {
+            auto mapping = transform_buffer->map(AccessType::WriteOnly);
+            for(size_t i = 0; i != objects.size(); ++i) {
+                const auto& obj = objects[i];
+                mapping[i] = {
+                    obj->transform()
+                };
+            }
         }
+        transform_buffer->bind(BufferUsage::Storage, 2);
+
+        material->bind();
+        auto mesh = objects[0]->get_mesh();
+        mesh->draw_instanced(objects.size());
     }
 }
 

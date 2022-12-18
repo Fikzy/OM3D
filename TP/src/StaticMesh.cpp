@@ -21,7 +21,7 @@ StaticMesh::StaticMesh(const MeshData& data) :
     radius = glm::length(v.position - center);
 }
 
-void StaticMesh::draw() const {
+void StaticMesh::setup() const {
     _vertex_buffer.bind(BufferUsage::Attribute);
     _index_buffer.bind(BufferUsage::Index);
 
@@ -41,8 +41,16 @@ void StaticMesh::draw() const {
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
     glEnableVertexAttribArray(4);
+}
 
+void StaticMesh::draw() const {
+    setup();
     glDrawElements(GL_TRIANGLES, int(_index_buffer.element_count()), GL_UNSIGNED_INT, nullptr);
+}
+
+void StaticMesh::draw_instanced(size_t count) const {
+    setup();
+    glDrawElementsInstanced(GL_TRIANGLES, int(_index_buffer.element_count()), GL_UNSIGNED_INT, nullptr, int(count));
 }
 
 }
