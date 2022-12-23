@@ -286,7 +286,7 @@ static void compute_tangents(MeshData& mesh) {
 }
 
 
-Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name) {
+Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name, const std::string& frag, const std::string& vert) {
     const double time = program_time();
     DEFER(std::cout << file_name << " loaded in " << std::round((program_time() - time) * 100.0) / 100.0 << "s" << std::endl);
 
@@ -398,12 +398,12 @@ Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name) {
                     auto normal = load_texture(normal_info, false);
 
                     if(!albedo) {
-                        mat = Material::empty_material();
+                        mat = Material::empty_material(frag, vert);
                     } else if(!normal) {
-                        mat = std::make_shared<Material>(Material::textured_material());
+                        mat = std::make_shared<Material>(Material::textured_material(frag, vert));
                         mat->set_texture(0u, albedo);
                     } else {
-                        mat = std::make_shared<Material>(Material::textured_normal_mapped_material());
+                        mat = std::make_shared<Material>(Material::textured_normal_mapped_material(frag, vert));
                         mat->set_texture(0u, albedo);
                         mat->set_texture(1u, normal);
                     }

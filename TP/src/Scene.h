@@ -17,7 +17,7 @@ class Scene : NonMovable {
     public:
         Scene();
 
-        static Result<std::unique_ptr<Scene>> from_gltf(const std::string& file_name);
+        static Result<std::unique_ptr<Scene>> from_gltf(const std::string& file_name, const std::string& frag, const std::string& vert);
 
         std::shared_ptr<TypedBuffer<shader::FrameData>> get_framedata_buffer(const Camera& camera) const;
         std::shared_ptr<TypedBuffer<shader::PointLight>> get_lights_buffer() const;

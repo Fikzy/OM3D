@@ -76,26 +76,26 @@ void Material::bind() const {
     _program->bind();
 }
 
-std::shared_ptr<Material> Material::empty_material() {
+std::shared_ptr<Material> Material::empty_material(const std::string& frag, const std::string& vert) {
     static std::weak_ptr<Material> weak_material;
     auto material = weak_material.lock();
     if(!material) {
         material = std::make_shared<Material>();
-        material->_program = Program::from_files("gbuffer.frag", "basic.vert");
+        material->_program = Program::from_files(frag, vert);
         weak_material = material;
     }
     return material;
 }
 
-Material Material::textured_material() {
+Material Material::textured_material(const std::string& frag, const std::string& vert) {
     Material material;
-    material._program = Program::from_files("gbuffer.frag", "basic.vert", {"TEXTURED"});
+    material._program = Program::from_files(frag, vert, {"TEXTURED"});
     return material;
 }
 
-Material Material::textured_normal_mapped_material() {
+Material Material::textured_normal_mapped_material(const std::string& frag, const std::string& vert) {
     Material material;
-    material._program = Program::from_files("gbuffer.frag", "basic.vert", std::array<std::string, 2>{"TEXTURED", "NORMAL_MAPPED"});
+    material._program = Program::from_files(frag, vert, std::array<std::string, 2>{"TEXTURED", "NORMAL_MAPPED"});
     return material;
 }
 

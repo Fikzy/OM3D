@@ -99,7 +99,7 @@ std::unique_ptr<Scene> create_default_scene() {
     auto scene = std::make_unique<Scene>();
 
     // Load default cube model
-    auto result = Scene::from_gltf(std::string(data_path) + "cube.glb");
+    auto result = Scene::from_gltf(std::string(data_path) + "cube.glb", "gbuffer.frag", "basic.vert");
     if (result.is_ok) {
         current_scene.emplace(std::string(data_path) + "cube.glb");
     }
@@ -159,6 +159,7 @@ int main(int, char**) {
     ImGuiRenderer imgui(window);
     bool debug = false;
     int debug_shader = 0;
+    bool basic_rendering = false;
 
     std::unique_ptr<Scene> scene = create_default_scene();
     SceneView scene_view(scene.get());
@@ -203,20 +204,24 @@ int main(int, char**) {
             process_inputs(window, scene_view.camera());
         }
 
-        // Render the scene into the gbuffer
-        {
+        if (basic_rendering) {
+
+            main_framebuffer.bind();
+            scene_view.render();
+
+        } else {
+
+            // Render the scene into the gbuffer
             gbuffer.bind();
             scene_view.render();
-        }
 
-        if (debug) {
-            ds_material->set_program(debug_programs[debug_shader]);
-        } else {
-            ds_material->set_program(ds_program);
-        }
+            if (debug) {
+                ds_material->set_program(debug_programs[debug_shader]);
+            } else {
+                ds_material->set_program(ds_program);
+            }
 
-        // Compute lighting from the gbuffer
-        {
+            // Compute lighting from the gbuffer
             const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
             framedata_buffer->bind(BufferUsage::Uniform, 0);
 
@@ -248,15 +253,16 @@ int main(int, char**) {
                     ImGui::BeginDisabled();
                 }
                 if (ImGui::Button(path.filename().string().c_str())) {
-                    auto result = Scene::from_gltf(path.string());
-                if(!result.is_ok) {
+                    auto result = Scene::from_gltf(path.string(), "gbuffer.frag", "basic.vert");
+                    if(!result.is_ok) {
                         std::cerr << "Unable to load scene (" << path.string() << ")" << std::endl;
-                } else {
-                    scene = std::move(result.value);
-                    scene_view = SceneView(scene.get());
+                    } else {
+                        scene = std::move(result.value);
+                        scene_view = SceneView(scene.get());
                         current_scene = path;
+                    }
+                    basic_rendering = false;
                 }
-            }
                 if (disabled) {
                     ImGui::EndDisabled();
                 }
@@ -264,12 +270,28 @@ int main(int, char**) {
             }
             ImGui::NewLine();
             ImGui::NewLine();
+
             ImGui::Checkbox("Debug shader", &debug);
             if (debug)
             {
                 ImGui::RadioButton("Albedo", &debug_shader, 0);
                 ImGui::RadioButton("Normal", &debug_shader, 1);
                 ImGui::RadioButton("Depth", &debug_shader, 2);
+            }
+            ImGui::NewLine();
+
+            if (ImGui::Checkbox("Basic rendering", &basic_rendering)) {
+                std::pair<std::string, std::string> pipeline = basic_rendering
+                    ? std::pair{"basic_lit.frag", "basic.vert"}
+                    : std::pair{"gbuffer.frag", "basic.vert"};
+                auto result = Scene::from_gltf(current_scene->string(), pipeline.first, pipeline.second);
+                if(!result.is_ok) {
+                    std::cerr << "Unable to reload scene (" << current_scene->string() << ")" << std::endl;
+                } else {
+                    scene = std::move(result.value);
+                    scene_view = SceneView(scene.get());
+                    std::cout << "Set rendering pipeline to: {\"" << pipeline.first << "\", \"" << pipeline.second << "\"}" << std::endl;
+                }
             }
         }
         imgui.finish();

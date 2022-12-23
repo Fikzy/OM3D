@@ -39,9 +39,9 @@ class Material {
 
         void bind() const;
 
-        static std::shared_ptr<Material> empty_material();
-        static Material textured_material();
-        static Material textured_normal_mapped_material();
+        static std::shared_ptr<Material> empty_material(const std::string& frag, const std::string& vert);
+        static Material textured_material(const std::string& frag, const std::string& vert);
+        static Material textured_normal_mapped_material(const std::string& frag, const std::string& vert);
 
 
     private:
