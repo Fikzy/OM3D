@@ -4,6 +4,8 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <filesystem>
+#include <optional>
 #include <vector>
 
 #include <graphics.h>
@@ -20,6 +22,9 @@ using namespace OM3D;
 
 static float delta_time = 0.0f;
 const glm::uvec2 window_size(1600, 900);
+
+auto current_scene = std::optional<std::filesystem::path>();
+auto scene_paths = std::vector<std::filesystem::path>();
 
 
 void glfw_check(bool cond) {
@@ -94,7 +99,11 @@ std::unique_ptr<Scene> create_default_scene() {
     auto scene = std::make_unique<Scene>();
 
     // Load default cube model
-    auto result = Scene::from_gltf(std::string(data_path) + "forest.glb");
+    auto result = Scene::from_gltf(std::string(data_path) + "cube.glb");
+    if (result.is_ok) {
+        current_scene.emplace(std::string(data_path) + "cube.glb");
+    }
+
     ALWAYS_ASSERT(result.is_ok, "Unable to load default scene");
     scene = std::move(result.value);
 
@@ -138,6 +147,14 @@ int main(int, char**) {
 
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+
+    std::cout << "Scenes:" << std::endl;
+    for (const auto& entry : std::filesystem::directory_iterator(data_path)) {
+        if (entry.path().extension() == ".glb") {
+            std::cout << "  - " << entry.path().filename().string() << std::endl;
+            scene_paths.push_back(entry.path());
+        }
+    }
 
     ImGuiRenderer imgui(window);
     bool debug = false;
@@ -225,26 +242,35 @@ int main(int, char**) {
         // GUI
         imgui.start();
         {
-            char buffer[1024] = {};
-            if(ImGui::InputText("Load scene", buffer, sizeof(buffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                auto result = Scene::from_gltf(buffer);
+            for (const auto& path : scene_paths) {
+                bool disabled = path == current_scene;
+                if (disabled) {
+                    ImGui::BeginDisabled();
+                }
+                if (ImGui::Button(path.filename().string().c_str())) {
+                    auto result = Scene::from_gltf(path.string());
                 if(!result.is_ok) {
-                    std::cerr << "Unable to load scene (" << buffer << ")" << std::endl;
+                        std::cerr << "Unable to load scene (" << path.string() << ")" << std::endl;
                 } else {
                     scene = std::move(result.value);
                     scene_view = SceneView(scene.get());
+                        current_scene = path;
                 }
             }
-            ImGui::BeginGroup();
-            ImGui::Text("Debug shader");
-            ImGui::Checkbox("Debug", &debug);
+                if (disabled) {
+                    ImGui::EndDisabled();
+                }
+                ImGui::SameLine();
+            }
+            ImGui::NewLine();
+            ImGui::NewLine();
+            ImGui::Checkbox("Debug shader", &debug);
             if (debug)
             {
                 ImGui::RadioButton("Albedo", &debug_shader, 0);
                 ImGui::RadioButton("Normal", &debug_shader, 1);
                 ImGui::RadioButton("Depth", &debug_shader, 2);
             }
-            ImGui::EndGroup();
         }
         imgui.finish();
 
