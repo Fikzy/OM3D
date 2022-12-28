@@ -289,9 +289,12 @@ int main(int, char**) {
                     std::cerr << "Unable to reload scene (" << current_scene->string() << ")" << std::endl;
                 } else {
                     scene = std::move(result.value);
-                    scene_view = SceneView(scene.get());
+                    scene_view.set_scene(scene.get());
                     std::cout << "Set rendering pipeline to: {\"" << pipeline.first << "\", \"" << pipeline.second << "\"}" << std::endl;
                 }
+            }
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                ImGui::SetTooltip("Warning: reloads entire scene");
             }
         }
         imgui.finish();

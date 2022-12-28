@@ -14,6 +14,7 @@ class SceneView {
         const Camera& camera() const;
 
         const Scene* scene() const;
+        void set_scene(const Scene* scene);
 
         void render() const;
 

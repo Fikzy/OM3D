@@ -17,6 +17,12 @@ const Scene* SceneView::scene() const {
     return _scene;
 }
 
+void SceneView::set_scene(const Scene* scene) {
+    if (scene) {
+        _scene = scene;
+    }
+}
+
 void SceneView::render() const {
     if(_scene) {
         _scene->render(_camera);
