@@ -50,7 +50,7 @@ void main() {
 #ifdef DEBUG_ALBEDO
     out_color = vec4(albedo, 1.0);
 #elif DEBUG_NORMAL
-    out_color = vec4(normal, 1.0);
+    out_color = vec4(normal * 0.5 + 0.5, 1.0);
 #elif DEBUG_DEPTH
     out_color = vec4(vec3(depth * 10000.0), 1.0);
 #endif

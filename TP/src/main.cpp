@@ -159,6 +159,7 @@ int main(int, char**) {
     ImGuiRenderer imgui(window);
     bool debug = false;
     int debug_shader = 0;
+    bool tonemapping = true;
     bool basic_rendering = false;
 
     std::unique_ptr<Scene> scene = create_default_scene();
@@ -234,7 +235,7 @@ int main(int, char**) {
         }
 
         // Apply a tonemap in compute shader
-        {
+        if (tonemapping) {
             tonemap_program->bind();
             lit->bind(0);
             color->bind_as_image(1, AccessType::WriteOnly);
@@ -242,7 +243,7 @@ int main(int, char**) {
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        tonemap_framebuffer.blit();
+        tonemapping ? tonemap_framebuffer.blit() : main_framebuffer.blit();
 
         // GUI
         imgui.start();
@@ -271,7 +272,13 @@ int main(int, char**) {
             ImGui::NewLine();
             ImGui::NewLine();
 
+            if (basic_rendering) {
+                ImGui::BeginDisabled();
+            }
             ImGui::Checkbox("Debug shader", &debug);
+            if (basic_rendering) {
+                ImGui::EndDisabled();
+            }
             if (debug)
             {
                 ImGui::RadioButton("Albedo", &debug_shader, 0);
@@ -280,10 +287,14 @@ int main(int, char**) {
             }
             ImGui::NewLine();
 
+            ImGui::Checkbox("Tonemapping", &tonemapping);
+
             if (ImGui::Checkbox("Basic rendering", &basic_rendering)) {
                 std::pair<std::string, std::string> pipeline = basic_rendering
                     ? std::pair{"basic_lit.frag", "basic.vert"}
                     : std::pair{"gbuffer.frag", "basic.vert"};
+                if (debug)
+                    debug = false;
                 auto result = Scene::from_gltf(current_scene->string(), pipeline.first, pipeline.second);
                 if(!result.is_ok) {
                     std::cerr << "Unable to reload scene (" << current_scene->string() << ")" << std::endl;

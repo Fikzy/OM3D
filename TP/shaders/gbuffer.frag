@@ -31,8 +31,8 @@ void main() {
     const vec3 normal = in_normal;
 #endif
 
-    out_normal = vec4((normal + 1.0) / 2.0 , 1.0);
     out_albedo = vec4(in_color, 1.0);
+    out_normal = vec4((normal + 1.0) / 2.0 , 1.0);
 
 #ifdef TEXTURED
     out_albedo *= texture(in_texture, in_uv);
