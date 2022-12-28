@@ -1,10 +1,7 @@
 #version 450
+// gbuffer.frag
 
 #include "utils.glsl"
-
-// fragment shader of the main lighting pass
-
-// #define DEBUG_NORMAL
 
 layout(location = 0) out vec4 out_albedo;
 layout(location = 1) out vec4 out_normal;

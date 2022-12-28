@@ -76,27 +76,22 @@ void Material::bind() const {
     _program->bind();
 }
 
-std::shared_ptr<Material> Material::empty_material(const std::string& frag, const std::string& vert) {
-    static std::weak_ptr<Material> weak_material;
-    auto material = weak_material.lock();
-    if(!material) {
-        material = std::make_shared<Material>();
-        material->_program = Program::from_files(frag, vert);
-        weak_material = material;
-    }
+std::shared_ptr<Material> Material::material(const std::string& frag, const std::string& vert, Span<const std::string> defines) {
+    auto material = std::make_shared<Material>();
+    material->_program = Program::from_files(frag, vert, defines);
     return material;
 }
 
-Material Material::textured_material(const std::string& frag, const std::string& vert) {
-    Material material;
-    material._program = Program::from_files(frag, vert, {"TEXTURED"});
-    return material;
+std::shared_ptr<Material> Material::textured_material(const std::string& frag, const std::string& vert, Span<const std::string> defines) {
+    std::vector<std::string> new_defines = {"TEXTURED"};
+    new_defines.insert(new_defines.end(), defines.begin(), defines.end());
+    return material(frag, vert, new_defines);
 }
 
-Material Material::textured_normal_mapped_material(const std::string& frag, const std::string& vert) {
-    Material material;
-    material._program = Program::from_files(frag, vert, std::array<std::string, 2>{"TEXTURED", "NORMAL_MAPPED"});
-    return material;
+std::shared_ptr<Material> Material::textured_normal_mapped_material(const std::string& frag, const std::string& vert, Span<const std::string> defines) {
+    std::vector<std::string> new_defines = {"TEXTURED", "NORMAL_MAPPED"};
+    new_defines.insert(new_defines.end(), defines.begin(), defines.end());
+    return material(frag, vert, new_defines);
 }
 
 }

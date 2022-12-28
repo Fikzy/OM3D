@@ -184,13 +184,16 @@ int main(int, char**) {
     ds_material->set_texture(0u, albedo);
     ds_material->set_texture(1u, normal);
     ds_material->set_texture(2u, depth);
-    ds_material->set_blend_mode(BlendMode::Alpha); // Disable backface culling?
-    // gbuffer_material->set_depth_test_mode(DepthTestMode::Reversed);
 
     auto debug_programs = std::array{
         Program::from_files("lit.frag", "screen.vert", {"DEBUG_ALBEDO"}),
         Program::from_files("lit.frag", "screen.vert", {"DEBUG_NORMAL"}),
         Program::from_files("lit.frag", "screen.vert", {"DEBUG_DEPTH"}),
+    };
+    auto debug_defines = std::array{
+        "DEBUG_ALBEDO",
+        "DEBUG_NORMAL",
+        "DEBUG_DEPTH",
     };
 
     for(;;) {
@@ -272,30 +275,24 @@ int main(int, char**) {
             ImGui::NewLine();
             ImGui::NewLine();
 
-            if (basic_rendering) {
-                ImGui::BeginDisabled();
-            }
-            ImGui::Checkbox("Debug shader", &debug);
-            if (basic_rendering) {
-                ImGui::EndDisabled();
-            }
+            bool debug_updated = false;
+            debug_updated |= ImGui::Checkbox("Debug shader", &debug);
             if (debug)
             {
-                ImGui::RadioButton("Albedo", &debug_shader, 0);
-                ImGui::RadioButton("Normal", &debug_shader, 1);
-                ImGui::RadioButton("Depth", &debug_shader, 2);
+                debug_updated |= ImGui::RadioButton("Albedo", &debug_shader, 0);
+                debug_updated |= ImGui::RadioButton("Normal", &debug_shader, 1);
+                debug_updated |= ImGui::RadioButton("Depth", &debug_shader, 2);
             }
             ImGui::NewLine();
 
             ImGui::Checkbox("Tonemapping", &tonemapping);
 
-            if (ImGui::Checkbox("Basic rendering", &basic_rendering)) {
+            if (ImGui::Checkbox("Basic rendering", &basic_rendering) || (basic_rendering && debug_updated)) {
                 std::pair<std::string, std::string> pipeline = basic_rendering
                     ? std::pair{"basic_lit.frag", "basic.vert"}
                     : std::pair{"gbuffer.frag", "basic.vert"};
-                if (debug)
-                    debug = false;
-                auto result = Scene::from_gltf(current_scene->string(), pipeline.first, pipeline.second);
+                auto result = Scene::from_gltf(current_scene->string(), pipeline.first, pipeline.second,
+                    debug ? Span<const std::string>{debug_defines[debug_shader]} : Span<const std::string>{});
                 if(!result.is_ok) {
                     std::cerr << "Unable to reload scene (" << current_scene->string() << ")" << std::endl;
                 } else {

@@ -1,10 +1,7 @@
 #version 450
+// basic_lit.frag
 
 #include "utils.glsl"
-
-// fragment shader of the main lighting pass
-
-// #define DEBUG_NORMAL
 
 layout(location = 0) out vec4 out_color;
 
@@ -61,7 +58,12 @@ void main() {
     out_color *= texture(in_texture, in_uv);
 #endif
 
-#ifdef DEBUG_NORMAL
+#ifdef DEBUG_ALBEDO
+    out_color = vec4(in_color, 1.0);
+    #ifdef TEXTURED
+    out_color *= texture(in_texture, in_uv);
+    #endif
+#elif DEBUG_NORMAL
     out_color = vec4(normal * 0.5 + 0.5, 1.0);
 #endif
 }
