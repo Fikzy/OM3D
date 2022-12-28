@@ -286,11 +286,11 @@ static void compute_tangents(MeshData& mesh) {
 }
 
 
-Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name, const std::string& frag, const std::string& vert) {
-    return from_gltf(file_name, frag, vert, {});
+Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name, const std::pair<const char *, const char *> pipeline) {
+    return from_gltf(file_name, pipeline, {});
 }
 
-Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name, const std::string& frag, const std::string& vert, Span<const std::string> defines) {
+Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name, const std::pair<const char *, const char *> pipeline, Span<const std::string> defines) {
     const double time = program_time();
     DEFER(std::cout << file_name << " loaded in " << std::round((program_time() - time) * 100.0) / 100.0 << "s" << std::endl);
 
@@ -402,12 +402,12 @@ Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name, co
                     auto normal = load_texture(normal_info, false);
 
                     if(!albedo) {
-                        mat = Material::material(frag, vert, defines);
+                        mat = Material::material(pipeline, defines);
                     } else if(!normal) {
-                        mat = Material::textured_material(frag, vert, defines);
+                        mat = Material::textured_material(pipeline, defines);
                         mat->set_texture(0u, albedo);
                     } else {
-                        mat = Material::textured_normal_mapped_material(frag, vert, defines);
+                        mat = Material::textured_normal_mapped_material(pipeline, defines);
                         mat->set_texture(0u, albedo);
                         mat->set_texture(1u, normal);
                     }

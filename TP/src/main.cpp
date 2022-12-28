@@ -23,8 +23,12 @@ using namespace OM3D;
 static float delta_time = 0.0f;
 const glm::uvec2 window_size(1600, 900);
 
+const auto FORWARD_PIPELINE = std::pair{"basic_lit.frag", "basic.vert"};
+const auto DEFERRED_PIPELINE = std::pair{"gbuffer.frag", "basic.vert"};
+
 auto current_scene = std::optional<std::filesystem::path>();
 auto scene_paths = std::vector<std::filesystem::path>();
+auto current_pipeline = DEFERRED_PIPELINE;
 
 
 void glfw_check(bool cond) {
@@ -99,7 +103,7 @@ std::unique_ptr<Scene> create_default_scene() {
     auto scene = std::make_unique<Scene>();
 
     // Load default cube model
-    auto result = Scene::from_gltf(std::string(data_path) + "cube.glb", "gbuffer.frag", "basic.vert");
+    auto result = Scene::from_gltf(std::string(data_path) + "cube.glb", current_pipeline);
     if (result.is_ok) {
         current_scene.emplace(std::string(data_path) + "cube.glb");
     }
@@ -158,9 +162,10 @@ int main(int, char**) {
 
     ImGuiRenderer imgui(window);
     bool debug = false;
+    bool debug_updated = false;
     int debug_shader = 0;
+    bool deferred_rendering = true;
     bool tonemapping = true;
-    bool basic_rendering = false;
 
     std::unique_ptr<Scene> scene = create_default_scene();
     SceneView scene_view(scene.get());
@@ -208,7 +213,7 @@ int main(int, char**) {
             process_inputs(window, scene_view.camera());
         }
 
-        if (basic_rendering) {
+        if (!deferred_rendering) {
 
             main_framebuffer.bind();
             scene_view.render();
@@ -257,7 +262,7 @@ int main(int, char**) {
                     ImGui::BeginDisabled();
                 }
                 if (ImGui::Button(path.filename().string().c_str())) {
-                    auto result = Scene::from_gltf(path.string(), "gbuffer.frag", "basic.vert");
+                    auto result = Scene::from_gltf(path.string(), current_pipeline);
                     if(!result.is_ok) {
                         std::cerr << "Unable to load scene (" << path.string() << ")" << std::endl;
                     } else {
@@ -265,7 +270,7 @@ int main(int, char**) {
                         scene_view = SceneView(scene.get());
                         current_scene = path;
                     }
-                    basic_rendering = false;
+                    deferred_rendering = true;
                 }
                 if (disabled) {
                     ImGui::EndDisabled();
@@ -275,34 +280,33 @@ int main(int, char**) {
             ImGui::NewLine();
             ImGui::NewLine();
 
-            bool debug_updated = false;
-            debug_updated |= ImGui::Checkbox("Debug shader", &debug);
-            if (debug)
-            {
-                debug_updated |= ImGui::RadioButton("Albedo", &debug_shader, 0);
-                debug_updated |= ImGui::RadioButton("Normal", &debug_shader, 1);
-                debug_updated |= ImGui::RadioButton("Depth", &debug_shader, 2);
-            }
-            ImGui::NewLine();
-
-            ImGui::Checkbox("Tonemapping", &tonemapping);
-
-            if (ImGui::Checkbox("Basic rendering", &basic_rendering) || (basic_rendering && debug_updated)) {
-                std::pair<std::string, std::string> pipeline = basic_rendering
-                    ? std::pair{"basic_lit.frag", "basic.vert"}
-                    : std::pair{"gbuffer.frag", "basic.vert"};
-                auto result = Scene::from_gltf(current_scene->string(), pipeline.first, pipeline.second,
+            if (ImGui::Checkbox("Deferred rendering", &deferred_rendering) || (!deferred_rendering && debug_updated)) {
+                current_pipeline = deferred_rendering ? DEFERRED_PIPELINE : FORWARD_PIPELINE;
+                auto result = Scene::from_gltf(current_scene->string(), current_pipeline,
                     debug ? Span<const std::string>{debug_defines[debug_shader]} : Span<const std::string>{});
                 if(!result.is_ok) {
                     std::cerr << "Unable to reload scene (" << current_scene->string() << ")" << std::endl;
                 } else {
                     scene = std::move(result.value);
                     scene_view.set_scene(scene.get());
-                    std::cout << "Set rendering pipeline to: {\"" << pipeline.first << "\", \"" << pipeline.second << "\"}" << std::endl;
+                    std::cout << "Set rendering pipeline to: {\"" << current_pipeline.first << "\", \"" << current_pipeline.second << "\"}" << std::endl;
                 }
             }
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
                 ImGui::SetTooltip("Warning: reloads entire scene");
+            }
+
+            ImGui::Checkbox("Tonemapping", &tonemapping);
+            ImGui::NewLine();
+
+            debug_updated = ImGui::Checkbox("Debug shader", &debug);
+            if (debug)
+            {
+                debug_updated |= ImGui::RadioButton("Albedo", &debug_shader, 0);
+                debug_updated |= ImGui::RadioButton("Normal", &debug_shader, 1);
+                if (deferred_rendering) {
+                    debug_updated |= ImGui::RadioButton("Depth", &debug_shader, 2);
+                }
             }
         }
         imgui.finish();

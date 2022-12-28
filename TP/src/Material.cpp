@@ -76,22 +76,22 @@ void Material::bind() const {
     _program->bind();
 }
 
-std::shared_ptr<Material> Material::material(const std::string& frag, const std::string& vert, Span<const std::string> defines) {
+std::shared_ptr<Material> Material::material(const std::pair<const char *, const char *> pipeline, Span<const std::string> defines) {
     auto material = std::make_shared<Material>();
-    material->_program = Program::from_files(frag, vert, defines);
+    material->_program = Program::from_files(pipeline.first, pipeline.second, defines);
     return material;
 }
 
-std::shared_ptr<Material> Material::textured_material(const std::string& frag, const std::string& vert, Span<const std::string> defines) {
+std::shared_ptr<Material> Material::textured_material(const std::pair<const char *, const char *> pipeline, Span<const std::string> defines) {
     std::vector<std::string> new_defines = {"TEXTURED"};
     new_defines.insert(new_defines.end(), defines.begin(), defines.end());
-    return material(frag, vert, new_defines);
+    return material(pipeline, new_defines);
 }
 
-std::shared_ptr<Material> Material::textured_normal_mapped_material(const std::string& frag, const std::string& vert, Span<const std::string> defines) {
+std::shared_ptr<Material> Material::textured_normal_mapped_material(const std::pair<const char *, const char *> pipeline, Span<const std::string> defines) {
     std::vector<std::string> new_defines = {"TEXTURED", "NORMAL_MAPPED"};
     new_defines.insert(new_defines.end(), defines.begin(), defines.end());
-    return material(frag, vert, new_defines);
+    return material(pipeline, new_defines);
 }
 
 }
