@@ -224,12 +224,6 @@ int main(int, char**) {
             gbuffer.bind();
             scene_view.render();
 
-            if (debug) {
-                ds_material->set_program(debug_programs[debug_shader]);
-            } else {
-                ds_material->set_program(ds_program);
-            }
-
             // Compute lighting from the gbuffer
             const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
             framedata_buffer->bind(BufferUsage::Uniform, 0);
@@ -300,13 +294,17 @@ int main(int, char**) {
             ImGui::NewLine();
 
             debug_updated = ImGui::Checkbox("Debug shader", &debug);
-            if (debug)
-            {
+            if (debug) {
+
                 debug_updated |= ImGui::RadioButton("Albedo", &debug_shader, 0);
                 debug_updated |= ImGui::RadioButton("Normal", &debug_shader, 1);
                 if (deferred_rendering) {
                     debug_updated |= ImGui::RadioButton("Depth", &debug_shader, 2);
                 }
+
+                ds_material->set_program(debug_programs[debug_shader]);
+            } else {
+                ds_material->set_program(ds_program);
             }
         }
         imgui.finish();
