@@ -24,7 +24,7 @@ const vec3 ambient = vec3(0.0);
 void main() {
     vec3 albedo = texelFetch(in_albedo_texture, ivec2(gl_FragCoord.xy), 0).rgb;
     vec3 normal = texelFetch(in_normal_texture, ivec2(gl_FragCoord.xy), 0).xyz;
-    normal = normalize(normal * 2.0 - 1.0);
+    normal = normal * 2.0 - 1.0; // [0, 1] -> [-1, 1]
     float depth = texelFetch(in_depth_texture, ivec2(gl_FragCoord.xy), 0).r;
 
     vec3 position = unproject(in_uv, depth, inverse(frame.camera.view_proj));
@@ -46,12 +46,18 @@ void main() {
         acc += light.color * (NoL * att);
     }
 
-    out_color = vec4(albedo * acc, 1.0);
+    if (depth != 0.0)
+        out_color = vec4(albedo * acc, 1.0);
+    else
+        out_color = vec4(albedo, 1.0);
 
 #ifdef DEBUG_ALBEDO
     out_color = vec4(albedo, 1.0);
 #elif DEBUG_NORMAL
-    out_color = vec4(normal * 0.5 + 0.5, 1.0);
+    if (depth != 0.0)
+        out_color = vec4(normal * 0.5 + 0.5, 1.0);
+    else
+        out_color = vec4(albedo, 1.0);
 #elif DEBUG_DEPTH
     out_color = vec4(vec3(depth * 10000.0), 1.0);
 #endif

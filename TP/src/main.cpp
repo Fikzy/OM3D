@@ -174,7 +174,7 @@ int main(int, char**) {
     auto color = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM);
     Framebuffer tonemap_framebuffer(nullptr, std::array{color.get()});
 
-    auto albedo = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_sRGB);
+    auto albedo = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM); // do not use RGBA8_sRGB!
     auto normal = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM);
     auto depth = std::make_shared<Texture>(window_size, ImageFormat::Depth32_FLOAT);
     Framebuffer gbuffer(depth.get(), std::array{albedo.get(), normal.get()});
