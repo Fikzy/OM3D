@@ -5,6 +5,7 @@
 #include <shader_structs.h>
 
 #include <algorithm>
+#include <iostream>
 #include <unordered_map>
 
 namespace OM3D {
@@ -21,7 +22,6 @@ void Scene::add_object(PointLight obj) {
 }
 
 std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(const Camera& camera) const {
-    // Fill and bind frame data buffer
     const auto buffer = std::make_shared<TypedBuffer<shader::FrameData>>(nullptr, 1);
     {
         auto mapping = buffer->map(AccessType::WriteOnly);
@@ -33,17 +33,25 @@ std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(cons
     return buffer;
 }
 
-std::shared_ptr<TypedBuffer<shader::PointLight>> Scene::get_lights_buffer() const {
-    // Fill and bind lights buffer
-    const auto light_buffer = std::make_shared<TypedBuffer<shader::PointLight>>(nullptr, std::max(_point_lights.size(), size_t(1)));
+std::shared_ptr<TypedBuffer<shader::PointLight>> Scene::get_lights_buffer(const Camera& camera) const {
+    
+    const auto frustum = camera.build_frustum();
+
+    auto lights = std::vector<const PointLight*>();
+    for (const auto &light : _point_lights) {
+        if (camera.in_frustum(frustum, light.position(), light.radius()))
+            lights.push_back(&light);
+    }
+
+    const auto light_buffer = std::make_shared<TypedBuffer<shader::PointLight>>(nullptr, std::max(lights.size(), size_t(1)));
     {
         auto mapping = light_buffer->map(AccessType::WriteOnly);
-        for(size_t i = 0; i != _point_lights.size(); ++i) {
-            const auto& light = _point_lights[i];
+        for(size_t i = 0; i != lights.size(); ++i) {
+            const auto& light = lights[i];
             mapping[i] = {
-                light.position(),
-                light.radius(),
-                light.color(),
+                light->position(),
+                light->radius(),
+                light->color(),
                 0.0f
             };
         }
@@ -52,11 +60,6 @@ std::shared_ptr<TypedBuffer<shader::PointLight>> Scene::get_lights_buffer() cons
 }
 
 void Scene::render(const Camera& camera) const {
-    const auto framedata_buffer = get_framedata_buffer(camera);
-    framedata_buffer->bind(BufferUsage::Uniform, 0);
-
-    const auto lights_buffer = get_lights_buffer();
-    lights_buffer->bind(BufferUsage::Storage, 1);
 
     const auto frustum = camera.build_frustum();
 

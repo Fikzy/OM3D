@@ -104,4 +104,20 @@ Frustum Camera::build_frustum() const {
     return frustum;
 }
 
+bool Camera::in_frustum(const Frustum& frustum, const glm::vec3& position, float radius) const {
+
+    const auto to_vector = position - this->position();
+    const auto normals = {frustum._near_normal, frustum._top_normal, frustum._bottom_normal, frustum._right_normal, frustum._left_normal};
+    
+    for (const auto &normal : normals) {
+        auto offset_point = to_vector + normal * radius;
+
+        if (glm::dot(offset_point, normal) < 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 }

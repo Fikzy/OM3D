@@ -32,26 +32,14 @@ const glm::mat4& SceneObject::transform() const {
 
 bool SceneObject::in_frustum(const Frustum& frustum, const Camera& camera) const {
 
-    auto object_positon = glm::vec3(_transform[3]);
+    const auto object_positon = glm::vec3(_transform[3]);
 
     auto scale_x = glm::length(glm::vec3(_transform[0]));
     auto scale_y = glm::length(glm::vec3(_transform[1]));
     auto scale_z = glm::length(glm::vec3(_transform[2]));
-    auto scale = std::max(std::max(scale_x, scale_y), scale_z);
+    auto max_scale = std::max(std::max(scale_x, scale_y), scale_z);
 
-    auto vector_to_object = object_positon - camera.position();
-
-    const auto normals = {frustum._near_normal, frustum._top_normal, frustum._bottom_normal, frustum._right_normal, frustum._left_normal};
-    
-    for (const auto &normal : normals) {
-        auto offset_point = vector_to_object + normal * _mesh->radius * scale;
-
-        if (glm::dot(offset_point, normal) < 0) {
-            return false;
-        }
-    }
-
-    return true;
+    return camera.in_frustum(frustum, object_positon, _mesh->radius * max_scale);
 }
 
 }

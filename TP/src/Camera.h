@@ -35,6 +35,8 @@ class Camera {
 
         Frustum build_frustum() const;
 
+        bool in_frustum(const Frustum& frustum, const glm::vec3& position, float radius) const;
+
     private:
         void update();
         glm::mat4 build_projection(float zNear);

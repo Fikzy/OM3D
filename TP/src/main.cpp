@@ -215,22 +215,27 @@ int main(int, char**) {
 
         if (!deferred_rendering) {
 
+            const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
+            framedata_buffer->bind(BufferUsage::Uniform, 0);
+
+            const auto lights_buffer = scene_view.scene()->get_lights_buffer(scene_view.camera());
+            lights_buffer->bind(BufferUsage::Storage, 1);
+
             main_framebuffer.bind();
             scene_view.render();
 
         } else {
+            const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
+            framedata_buffer->bind(BufferUsage::Uniform, 0);
+
+            const auto lights_buffer = scene_view.scene()->get_lights_buffer(scene_view.camera());
+            lights_buffer->bind(BufferUsage::Storage, 1);
 
             // Render the scene into the gbuffer
             gbuffer.bind();
             scene_view.render();
 
             // Compute lighting from the gbuffer
-            const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
-            framedata_buffer->bind(BufferUsage::Uniform, 0);
-
-            const auto lights_buffer = scene_view.scene()->get_lights_buffer();
-            lights_buffer->bind(BufferUsage::Storage, 1);
-
             ds_material->bind();
             main_framebuffer.bind();
             glDrawArrays(GL_TRIANGLES, 0, 3);
