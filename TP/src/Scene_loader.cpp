@@ -285,11 +285,6 @@ static void compute_tangents(MeshData& mesh) {
     }
 }
 
-
-Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name, const std::pair<const char *, const char *> pipeline) {
-    return from_gltf(file_name, pipeline, {});
-}
-
 Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name, const std::pair<const char *, const char *> pipeline, Span<const std::string> defines) {
     const double time = program_time();
     DEFER(std::cout << file_name << " loaded in " << std::round((program_time() - time) * 100.0) / 100.0 << "s" << std::endl);
