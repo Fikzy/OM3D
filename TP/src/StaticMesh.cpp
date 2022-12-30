@@ -9,7 +9,8 @@ namespace OM3D {
 
 StaticMesh::StaticMesh(const MeshData& data) :
     _vertex_buffer(data.vertices),
-    _index_buffer(data.indices) {
+    _index_buffer(data.indices),
+    hash(CollectionHasher<std::vector<Vertex>>()(data.vertices) ^ CollectionHasher<std::vector<u32>>()(data.indices)) {
 
     glm::vec3 center = glm::vec3(0.0f);
     

@@ -12,6 +12,10 @@
 
 namespace OM3D {
 
+struct RenderInfo {
+    size_t rendered_instances = 0;
+};
+
 class Scene : NonMovable {
 
     public:
@@ -22,7 +26,7 @@ class Scene : NonMovable {
         std::shared_ptr<TypedBuffer<shader::FrameData>> get_framedata_buffer(const Camera& camera) const;
         std::shared_ptr<TypedBuffer<shader::PointLight>> get_lights_buffer(const Camera& camera) const;
 
-        void render(const Camera& camera) const;
+        RenderInfo render(const Camera& camera) const;
 
         void add_object(SceneObject obj);
         void add_object(PointLight obj);

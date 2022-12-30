@@ -16,7 +16,7 @@ class SceneView {
         const Scene* scene() const;
         void set_scene(const Scene* scene);
 
-        void render() const;
+        RenderInfo render() const;
 
     private:
         const Scene* _scene = nullptr;

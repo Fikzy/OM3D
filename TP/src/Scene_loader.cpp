@@ -417,6 +417,10 @@ Result<std::unique_ptr<Scene>> Scene::from_gltf(const std::string& file_name, co
         }
     }
 
+    std::cout << "Loaded:" << std::endl;
+    std::cout << "  - " << gltf.meshes.size() << " meshes" << std::endl;
+    std::cout << "  - " << gltf.materials.size() << " materials" << std::endl;
+
     return {true, std::move(scene)};
 }
 

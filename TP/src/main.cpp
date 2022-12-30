@@ -166,6 +166,7 @@ int main(int, char**) {
     int debug_shader = 0;
     bool deferred_rendering = true;
     bool tonemapping = true;
+    RenderInfo render_info;
 
     std::unique_ptr<Scene> scene = create_default_scene();
     SceneView scene_view(scene.get());
@@ -222,7 +223,7 @@ int main(int, char**) {
             lights_buffer->bind(BufferUsage::Storage, 1);
 
             main_framebuffer.bind();
-            scene_view.render();
+            render_info = scene_view.render();
 
         } else {
             const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
@@ -233,7 +234,7 @@ int main(int, char**) {
 
             // Render the scene into the gbuffer
             gbuffer.bind();
-            scene_view.render();
+            render_info = scene_view.render();
 
             // Compute lighting from the gbuffer
             ds_material->bind();
@@ -311,6 +312,10 @@ int main(int, char**) {
             } else {
                 ds_material->set_program(ds_program);
             }
+            ImGui::NewLine();
+
+            ImGui::Text("Render info:");
+            ImGui::Text("  - rendered instances: %d", render_info.rendered_instances);
         }
         imgui.finish();
 

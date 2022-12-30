@@ -3,9 +3,9 @@
 #include <TypedBuffer.h>
 
 #include <shader_structs.h>
+#include <utils.h>
 
 #include <algorithm>
-#include <iostream>
 #include <unordered_map>
 
 namespace OM3D {
@@ -59,22 +59,25 @@ std::shared_ptr<TypedBuffer<shader::PointLight>> Scene::get_lights_buffer(const 
     return light_buffer;
 }
 
-void Scene::render(const Camera& camera) const {
+RenderInfo Scene::render(const Camera& camera) const {
 
     const auto frustum = camera.build_frustum();
 
-    auto map = std::unordered_map<Material*, std::vector<const SceneObject*>>();
+    auto map = std::unordered_map<size_t, std::pair<std::shared_ptr<Material>, std::vector<const SceneObject*>>>();
+
     for (const auto &obj : _objects) {
-        auto material_ptr = obj.get_material().get();
-        
-        if (obj.in_frustum(frustum, camera))
-            map[material_ptr].push_back(&obj);
+        size_t key = std::hash<Material *>()(obj.get_material().get());
+        hash_combine(key, obj.get_mesh()->hash);
+        if (obj.in_frustum(frustum, camera)) {
+            map[key].first = obj.get_material();
+            map[key].second.push_back(&obj);
+        }
     }
 
     // Render every object
     for (const auto& pair : map) {
-        const auto& material = pair.first;
-        const auto& objects = pair.second;
+        const auto& material = pair.second.first;
+        const auto& objects = pair.second.second;
 
         const auto transform_buffer = std::make_shared<TypedBuffer<shader::Model>>(nullptr, std::max(objects.size(), size_t(1)));
         {
@@ -92,6 +95,10 @@ void Scene::render(const Camera& camera) const {
         auto mesh = objects[0]->get_mesh();
         mesh->draw_instanced(objects.size());
     }
+
+    return RenderInfo{
+        map.size()
+    };
 }
 
 }

@@ -23,10 +23,11 @@ void SceneView::set_scene(const Scene* scene) {
     }
 }
 
-void SceneView::render() const {
+RenderInfo SceneView::render() const {
     if(_scene) {
-        _scene->render(_camera);
+        return _scene->render(_camera);
     }
+    return {};
 }
 
 }

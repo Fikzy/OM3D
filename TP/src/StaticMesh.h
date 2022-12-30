@@ -29,6 +29,7 @@ class StaticMesh : NonCopyable {
 
     public:
         float radius;
+        const size_t hash;
 
     private:
         TypedBuffer<Vertex> _vertex_buffer;
