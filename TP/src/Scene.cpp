@@ -33,8 +33,7 @@ std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(cons
     return buffer;
 }
 
-std::shared_ptr<TypedBuffer<shader::PointLight>> Scene::get_lights_buffer(const Camera& camera) const {
-    
+std::vector<const PointLight*> Scene::get_in_frustum_lights(const Camera& camera) const {
     const auto frustum = camera.build_frustum();
 
     auto lights = std::vector<const PointLight*>();
@@ -43,6 +42,10 @@ std::shared_ptr<TypedBuffer<shader::PointLight>> Scene::get_lights_buffer(const 
             lights.push_back(&light);
     }
 
+    return lights;
+}
+
+std::shared_ptr<TypedBuffer<shader::PointLight>> Scene::get_lights_buffer(std::vector<const PointLight*> lights) const {
     const auto light_buffer = std::make_shared<TypedBuffer<shader::PointLight>>(nullptr, std::max(lights.size(), size_t(1)));
     {
         auto mapping = light_buffer->map(AccessType::WriteOnly);
@@ -97,7 +100,9 @@ RenderInfo Scene::render(const Camera& camera) const {
     }
 
     return RenderInfo{
-        map.size()
+        _objects.size(),
+        map.size(),
+        _point_lights.size()
     };
 }
 

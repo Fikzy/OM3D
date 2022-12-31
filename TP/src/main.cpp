@@ -166,7 +166,9 @@ int main(int, char**) {
     int debug_shader = 0;
     bool deferred_rendering = true;
     bool tonemapping = true;
+
     RenderInfo render_info;
+    size_t rendered_point_lights = 0;
 
     std::unique_ptr<Scene> scene = create_default_scene();
     SceneView scene_view(scene.get());
@@ -214,23 +216,20 @@ int main(int, char**) {
             process_inputs(window, scene_view.camera());
         }
 
+        const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
+        framedata_buffer->bind(BufferUsage::Uniform, 0);
+
+        const auto lights = scene_view.scene()->get_in_frustum_lights(scene_view.camera());
+        const auto lights_buffer = scene_view.scene()->get_lights_buffer(lights);
+        lights_buffer->bind(BufferUsage::Storage, 1);
+        rendered_point_lights = lights.size();
+
         if (!deferred_rendering) {
-
-            const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
-            framedata_buffer->bind(BufferUsage::Uniform, 0);
-
-            const auto lights_buffer = scene_view.scene()->get_lights_buffer(scene_view.camera());
-            lights_buffer->bind(BufferUsage::Storage, 1);
 
             main_framebuffer.bind();
             render_info = scene_view.render();
 
         } else {
-            const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
-            framedata_buffer->bind(BufferUsage::Uniform, 0);
-
-            const auto lights_buffer = scene_view.scene()->get_lights_buffer(scene_view.camera());
-            lights_buffer->bind(BufferUsage::Storage, 1);
 
             // Render the scene into the gbuffer
             gbuffer.bind();
@@ -315,7 +314,10 @@ int main(int, char**) {
             ImGui::NewLine();
 
             ImGui::Text("Render info:");
-            ImGui::Text("  - rendered instances: %d", render_info.rendered_instances);
+            ImGui::Text("  - scene objects: %zu", render_info.scene_objects);
+            ImGui::Text("  - draw instanced calls: %zu", render_info.draw_instanced_calls);
+            ImGui::Text("  - points lights: %zu", render_info.points_lights);
+            ImGui::Text("  - rendered points lights: %zu", rendered_point_lights);
         }
         imgui.finish();
 

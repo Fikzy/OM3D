@@ -13,7 +13,9 @@
 namespace OM3D {
 
 struct RenderInfo {
-    size_t rendered_instances = 0;
+    size_t scene_objects = 0;
+    size_t draw_instanced_calls = 0;
+    size_t points_lights = 0;
 };
 
 class Scene : NonMovable {
@@ -24,7 +26,9 @@ class Scene : NonMovable {
         static Result<std::unique_ptr<Scene>> from_gltf(const std::string& file_name, const std::pair<const char *, const char *> pipeline, Span<const std::string> defines = {});
 
         std::shared_ptr<TypedBuffer<shader::FrameData>> get_framedata_buffer(const Camera& camera) const;
-        std::shared_ptr<TypedBuffer<shader::PointLight>> get_lights_buffer(const Camera& camera) const;
+
+        std::vector<const PointLight*> get_in_frustum_lights(const Camera& camera) const;
+        std::shared_ptr<TypedBuffer<shader::PointLight>> get_lights_buffer(std::vector<const PointLight*> lights) const;
 
         RenderInfo render(const Camera& camera) const;
 
