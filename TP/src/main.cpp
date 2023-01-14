@@ -53,13 +53,16 @@ void process_inputs(GLFWwindow* window, Camera& camera) {
     glm::dvec2 new_mouse_pos;
     glfwGetCursorPos(window, &new_mouse_pos.x, &new_mouse_pos.y);
 
+    const auto world_up = glm::vec3(0.0f, 1.0f, 0.0f);
+    const auto camera_forward = glm::cross(-camera.right(), world_up);
+
     {
         glm::vec3 movement = {};
         if(glfwGetKey(window, 'W') == GLFW_PRESS) {
-            movement += camera.forward();
+            movement += camera_forward;
         }
         if(glfwGetKey(window, 'S') == GLFW_PRESS) {
-            movement -= camera.forward();
+            movement -= camera_forward;
         }
         if(glfwGetKey(window, 'D') == GLFW_PRESS) {
             movement += camera.right();
@@ -68,14 +71,14 @@ void process_inputs(GLFWwindow* window, Camera& camera) {
             movement -= camera.right();
         }
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            movement += camera.up();
+            movement += world_up;
         }
-        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-            movement -= camera.up();
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            movement -= world_up;
         }
 
         float speed = 10.0f;
-        if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
             speed *= 10.0f;
         }
 
@@ -86,13 +89,15 @@ void process_inputs(GLFWwindow* window, Camera& camera) {
     }
 
     if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         const glm::vec2 delta = glm::vec2(mouse_pos - new_mouse_pos) * 0.01f;
         if(delta.length() > 0.0f) {
             glm::mat4 rot = glm::rotate(glm::mat4(1.0f), delta.x, glm::vec3(0.0f, 1.0f, 0.0f));
             rot = glm::rotate(rot, delta.y, camera.right());
             camera.set_view(glm::lookAt(camera.position(), camera.position() + (glm::mat3(rot) * camera.forward()), (glm::mat3(rot) * camera.up())));
         }
-
+    } else {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
     mouse_pos = new_mouse_pos;
