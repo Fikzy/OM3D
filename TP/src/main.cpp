@@ -316,7 +316,7 @@ int main(int, char**) {
             ImGui::Text("Render info:");
             ImGui::Text("  - scene objects: %zu", render_info.scene_objects);
             ImGui::Text("  - draw instanced calls: %zu", render_info.draw_instanced_calls);
-            ImGui::Text("  - points lights: %zu", render_info.points_lights);
+            ImGui::Text("  - points lights: %zu", scene->get_point_light_count());
             ImGui::Text("  - rendered points lights: %zu", rendered_point_lights);
         }
         imgui.finish();

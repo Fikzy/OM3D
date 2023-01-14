@@ -15,7 +15,6 @@ namespace OM3D {
 struct RenderInfo {
     size_t scene_objects = 0;
     size_t draw_instanced_calls = 0;
-    size_t points_lights = 0;
 };
 
 class Scene : NonMovable {
@@ -29,6 +28,8 @@ class Scene : NonMovable {
 
         std::vector<const PointLight*> get_in_frustum_lights(const Camera& camera) const;
         std::shared_ptr<TypedBuffer<shader::PointLight>> get_lights_buffer(std::vector<const PointLight*> lights) const;
+
+        size_t get_point_light_count() const { return _point_lights.size(); }
 
         RenderInfo render(const Camera& camera) const;
 

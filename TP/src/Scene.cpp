@@ -102,7 +102,6 @@ RenderInfo Scene::render(const Camera& camera) const {
     return RenderInfo{
         _objects.size(),
         map.size(),
-        _point_lights.size()
     };
 }
 
