@@ -209,9 +209,8 @@ int main(int, char**) {
     lc_material->set_texture(0u, albedo);
     lc_material->set_texture(1u, normal);
     lc_material->set_texture(2u, depth);
-    // lc_material->set_blend_mode(BlendMode::Additive);
-    // lc_material->set_depth_test_mode(DepthTestMode::Standard);
-    lc_material->set_depth_test_mode(DepthTestMode::None);
+    lc_material->set_blend_mode(BlendMode::Additive);
+    lc_material->set_depth_test_mode(DepthTestMode::Reversed);
     lc_material->set_depth_writing(false);
 
     auto debug_programs = std::array{
@@ -262,14 +261,6 @@ int main(int, char**) {
             lc_material->bind();
             main_framebuffer.bind();
 
-            glEnable(GL_BLEND);
-            glBlendEquation(GL_FUNC_ADD);
-            glBlendFunc(GL_ONE, GL_ONE);
-
-            glDisable(GL_CULL_FACE);
-            glDisable(GL_DEPTH_TEST);
-            glDepthMask(GL_FALSE);
-
             for (const auto& light : lights) {
 
                 // Vertex shader
@@ -288,7 +279,7 @@ int main(int, char**) {
                 sphere->draw();
             }
 
-            // Compute lighting from the gbuffer
+            // TODO: compute ambient and directional lighting
             // ds_material->bind();
             // main_framebuffer.bind();
             // glDrawArrays(GL_TRIANGLES, 0, 3);
