@@ -21,6 +21,10 @@ void Material::set_depth_test_mode(DepthTestMode depth) {
     _depth_test_mode = depth;
 }
 
+void Material::set_depth_writing(bool enabled) {
+    _depth_writing = enabled;
+}
+
 void Material::set_texture(u32 slot, std::shared_ptr<Texture> tex) {
     if(const auto it = std::find_if(_textures.begin(), _textures.end(), [&](const auto& t) { return t.second == tex; }); it != _textures.end()) {
         it->second = std::move(tex);
@@ -42,6 +46,13 @@ void Material::bind() const {
         case BlendMode::Alpha:
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            glDisable(GL_CULL_FACE);
+        break;
+
+        case BlendMode::Additive:
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
             glDisable(GL_CULL_FACE);
         break;
@@ -69,6 +80,8 @@ void Material::bind() const {
             glDepthFunc(GL_LEQUAL);
         break;
     }
+
+    glDepthMask(_depth_writing ? GL_TRUE : GL_FALSE);
 
     for(const auto& texture : _textures) {
         texture.second->bind(texture.first);

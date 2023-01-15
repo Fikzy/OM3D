@@ -32,6 +32,7 @@ class Scene : NonMovable {
         size_t get_point_light_count() const { return _point_lights.size(); }
 
         const std::vector<SceneObject>& get_objects() { return _objects; }
+        const std::vector<PointLight>& get_point_lights() { return _point_lights; }
 
         RenderInfo render(const Camera& camera) const;
 

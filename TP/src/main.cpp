@@ -90,7 +90,7 @@ void process_inputs(GLFWwindow* window, Camera& camera) {
 
     if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        const glm::vec2 delta = glm::vec2(mouse_pos - new_mouse_pos) * 0.01f;
+        const glm::vec2 delta = glm::vec2(mouse_pos - new_mouse_pos) * 0.005f;
         if(delta.length() > 0.0f) {
             glm::mat4 rot = glm::rotate(glm::mat4(1.0f), delta.x, glm::vec3(0.0f, 1.0f, 0.0f));
             rot = glm::rotate(rot, delta.y, camera.right());
@@ -122,14 +122,14 @@ std::unique_ptr<Scene> create_default_scene() {
         PointLight light;
         light.set_position(glm::vec3(1.0f, 2.0f, 4.0f));
         light.set_color(glm::vec3(0.0f, 10.0f, 0.0f));
-        light.set_radius(100.0f);
+        light.set_radius(5.0f);
         scene->add_object(std::move(light));
     }
     {
         PointLight light;
         light.set_position(glm::vec3(1.0f, 2.0f, -4.0f));
         light.set_color(glm::vec3(10.0f, 0.0f, 0.0f));
-        light.set_radius(50.0f);
+        light.set_radius(5.0f);
         scene->add_object(std::move(light));
     }
 
@@ -170,6 +170,7 @@ int main(int, char**) {
     bool debug = false;
     bool debug_updated = false;
     int debug_shader = 0;
+    bool debug_light_cull = false;
     bool deferred_rendering = true;
     bool tonemapping = true;
 
@@ -178,6 +179,10 @@ int main(int, char**) {
 
     std::unique_ptr<Scene> scene = create_default_scene();
     SceneView scene_view(scene.get());
+
+    auto sphere_scene = Scene::from_gltf(std::string(data_path) + "meshes/sphere.glb", current_pipeline);
+    ALWAYS_ASSERT(sphere_scene.is_ok, "Unable to load sphere");
+    auto sphere = sphere_scene.value->get_objects()[0].get_mesh();
 
     auto tonemap_program = Program::from_file("tonemap.comp");
     auto color = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM);
@@ -199,6 +204,16 @@ int main(int, char**) {
     ds_material->set_texture(1u, normal);
     ds_material->set_texture(2u, depth);
 
+    auto lc_program = Program::from_files("lit.frag", "basic.vert", {"LIGHT_CULL"});
+    auto lc_material = std::make_shared<Material>();
+    lc_material->set_program(lc_program);
+    lc_material->set_texture(0u, albedo);
+    lc_material->set_texture(1u, normal);
+    lc_material->set_texture(2u, depth);
+    lc_material->set_blend_mode(BlendMode::Additive);
+    lc_material->set_depth_test_mode(DepthTestMode::Reversed);
+    lc_material->set_depth_writing(false);
+
     auto debug_programs = std::array{
         Program::from_files("lit.frag", "screen.vert", {"DEBUG_ALBEDO"}),
         Program::from_files("lit.frag", "screen.vert", {"DEBUG_NORMAL"}),
@@ -209,6 +224,8 @@ int main(int, char**) {
         "DEBUG_NORMAL",
         "DEBUG_DEPTH",
     };
+
+    auto debug_lc_program = Program::from_files("lit.frag", "basic.vert", std::vector<std::string>{"LIGHT_CULL", "DEBUG_LIGHT_CULL"});
 
     for(;;) {
         glfwPollEvents();
@@ -240,6 +257,26 @@ int main(int, char**) {
             // Render the scene into the gbuffer
             gbuffer.bind();
             render_info = scene_view.render();
+
+            // Light culling
+            lc_material->bind();
+            for (const auto& light : lights) {
+
+                // Vertex shader
+                const auto& transform = glm::translate(glm::mat4(1.0f), light->position()) * glm::scale(glm::mat4(1.0f), glm::vec3(light->radius()));
+                const auto transform_buffer = std::make_shared<TypedBuffer<shader::Model>>(nullptr, 1);
+                {
+                    auto mapping = transform_buffer->map(AccessType::WriteOnly);
+                    mapping[0] = { transform };
+                }
+                transform_buffer->bind(BufferUsage::Storage, 2);
+
+                // Fragment shader
+                const auto light_buffer = scene_view.scene()->get_lights_buffer(std::vector{light});
+                light_buffer->bind(BufferUsage::Storage, 1);
+
+                sphere->draw();
+            }
 
             // Compute lighting from the gbuffer
             ds_material->bind();
@@ -316,6 +353,11 @@ int main(int, char**) {
                 ds_material->set_program(debug_programs[debug_shader]);
             } else {
                 ds_material->set_program(ds_program);
+            }
+
+            if (ImGui::Checkbox("Debug light culling", &debug_light_cull)) {
+                lc_material->set_program(debug_light_cull ? debug_lc_program : lc_program);
+                lc_material->set_depth_test_mode(debug_light_cull ? DepthTestMode::Standard : DepthTestMode::Reversed);
             }
             ImGui::NewLine();
 
