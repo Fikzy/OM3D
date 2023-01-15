@@ -5,13 +5,6 @@
 
 layout(location = 0) out vec4 out_color;
 
-#ifndef LIGHT_CULL
-layout(location = 0) in vec2 in_uv;
-#else
-layout(location = 1) in vec2 in_uv;
-// layout(location = 3) in vec3 in_position;
-#endif
-
 layout(binding = 0) uniform sampler2D in_albedo_texture;
 layout(binding = 1) uniform sampler2D in_normal_texture;
 layout(binding = 2) uniform sampler2D in_depth_texture;
@@ -46,26 +39,19 @@ void main() {
     float depth = texelFetch(in_depth_texture, ivec2(gl_FragCoord.xy), 0).r;
 
     if (depth == 0.0) {
-        out_color = vec4(albedo, 1.0);
-        return;
+        discard;
     }
+
+    vec2 uv = gl_FragCoord.xy / vec2(1600, 900);
 
 #ifndef LIGHT_CULL
-
-    vec3 position = unproject(in_uv, depth, inverse(frame.camera.view_proj));
+    vec3 position = unproject(uv, depth, inverse(frame.camera.view_proj));
 
     vec3 acc = frame.sun_color * max(0.0, dot(frame.sun_dir, normal)) + ambient;
-
-    for(uint i = 0; i != frame.point_light_count; ++i) {
-        PointLight light = point_lights[i];
-        acc += light.color * light_contribution(light, position, normal);
-    }
 
     out_color = vec4(albedo * acc, 1.0);
 
 #else // LIGHT_CULL
-    vec2 uv = gl_FragCoord.xy / vec2(1600, 900);
-
     PointLight light = point_lights[0];
 
     vec3 position = unproject(uv, depth, inverse(frame.camera.view_proj));

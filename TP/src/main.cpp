@@ -108,7 +108,7 @@ std::unique_ptr<Scene> create_default_scene() {
     auto scene = std::make_unique<Scene>();
 
     // Load default cube model
-    const auto cube_scene_path = std::string(data_path) + "scenes/cube.glb";
+    const auto cube_scene_path = std::string(data_path) + "scenes/Cube_with_lights.glb";
     auto result = Scene::from_gltf(cube_scene_path, current_pipeline);
     if (result.is_ok) {
         current_scene.emplace(cube_scene_path);
@@ -202,6 +202,9 @@ int main(int, char**) {
     ds_material->set_texture(0u, albedo);
     ds_material->set_texture(1u, normal);
     ds_material->set_texture(2u, depth);
+    ds_material->set_blend_mode(BlendMode::Alpha);
+    ds_material->set_depth_test_mode(DepthTestMode::None);
+    ds_material->set_depth_writing(false);
 
     auto lc_program = Program::from_files("lit.frag", "basic.vert", {"LIGHT_CULL"});
     auto lc_material = std::make_shared<Material>();
@@ -252,15 +255,20 @@ int main(int, char**) {
             render_info = scene_view.render();
 
         } else {
-
             // Render the scene into the gbuffer
             gbuffer.bind();
             render_info = scene_view.render();
 
+            // Ambiant + directional lighting
+            ds_material->bind();
+            main_framebuffer.bind();
+            framedata_buffer->bind(BufferUsage::Uniform, 0);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+
             // Light culling
             lc_material->bind();
-            main_framebuffer.bind();
-
+            main_framebuffer.bind(false);
+            
             for (const auto& light : lights) {
 
                 // Vertex shader
@@ -278,11 +286,6 @@ int main(int, char**) {
 
                 sphere->draw();
             }
-
-            // TODO: compute ambient and directional lighting
-            // ds_material->bind();
-            // main_framebuffer.bind();
-            // glDrawArrays(GL_TRIANGLES, 0, 3);
         }
 
         // Apply a tonemap in compute shader
