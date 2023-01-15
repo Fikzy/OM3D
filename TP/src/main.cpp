@@ -108,32 +108,15 @@ std::unique_ptr<Scene> create_default_scene() {
     auto scene = std::make_unique<Scene>();
 
     // Load default cube model
-    const auto cube_scene_path = std::string(data_path) + "scenes/Cube_with_lights.glb";
+    const auto cube_scene_path = std::string(data_path) + "scenes/cube_lights.glb";
     auto result = Scene::from_gltf(cube_scene_path, current_pipeline);
     if (result.is_ok) {
         current_scene.emplace(cube_scene_path);
     }
 
     ALWAYS_ASSERT(result.is_ok, "Unable to load default scene");
-    scene = std::move(result.value);
 
-    // Add lights
-    {
-        PointLight light;
-        light.set_position(glm::vec3(1.0f, 2.0f, 4.0f));
-        light.set_color(glm::vec3(0.0f, 10.0f, 0.0f));
-        light.set_radius(5.0f);
-        scene->add_object(std::move(light));
-    }
-    {
-        PointLight light;
-        light.set_position(glm::vec3(1.0f, 2.0f, -4.0f));
-        light.set_color(glm::vec3(10.0f, 0.0f, 0.0f));
-        light.set_radius(5.0f);
-        scene->add_object(std::move(light));
-    }
-
-    return scene;
+    return std::move(result.value);
 }
 
 
