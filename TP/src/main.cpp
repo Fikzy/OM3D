@@ -194,8 +194,7 @@ int main(int, char**) {
     Framebuffer gbuffer(depth.get(), std::array{albedo.get(), normal.get()});
 
     auto lit = std::make_shared<Texture>(window_size, ImageFormat::RGBA16_FLOAT);
-    auto trash_depth = std::make_shared<Texture>(window_size, ImageFormat::Depth32_FLOAT);
-    Framebuffer main_framebuffer(trash_depth.get(), std::array{lit.get()});
+    Framebuffer main_framebuffer(depth.get(), std::array{lit.get()});
 
     auto ds_program = Program::from_files("lit.frag", "screen.vert");
     auto ds_material = std::make_shared<Material>();
@@ -210,8 +209,9 @@ int main(int, char**) {
     lc_material->set_texture(0u, albedo);
     lc_material->set_texture(1u, normal);
     lc_material->set_texture(2u, depth);
-    lc_material->set_blend_mode(BlendMode::Additive);
-    lc_material->set_depth_test_mode(DepthTestMode::Reversed);
+    // lc_material->set_blend_mode(BlendMode::Additive);
+    // lc_material->set_depth_test_mode(DepthTestMode::Standard);
+    lc_material->set_depth_test_mode(DepthTestMode::None);
     lc_material->set_depth_writing(false);
 
     auto debug_programs = std::array{
@@ -260,6 +260,16 @@ int main(int, char**) {
 
             // Light culling
             lc_material->bind();
+            main_framebuffer.bind();
+
+            glEnable(GL_BLEND);
+            glBlendEquation(GL_FUNC_ADD);
+            glBlendFunc(GL_ONE, GL_ONE);
+
+            glDisable(GL_CULL_FACE);
+            glDisable(GL_DEPTH_TEST);
+            glDepthMask(GL_FALSE);
+
             for (const auto& light : lights) {
 
                 // Vertex shader
@@ -279,9 +289,9 @@ int main(int, char**) {
             }
 
             // Compute lighting from the gbuffer
-            ds_material->bind();
-            main_framebuffer.bind();
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            // ds_material->bind();
+            // main_framebuffer.bind();
+            // glDrawArrays(GL_TRIANGLES, 0, 3);
         }
 
         // Apply a tonemap in compute shader

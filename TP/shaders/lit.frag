@@ -64,16 +64,17 @@ void main() {
     out_color = vec4(albedo * acc, 1.0);
 
 #else // LIGHT_CULL
+    vec2 uv = gl_FragCoord.xy / vec2(1600, 900);
 
     PointLight light = point_lights[0];
 
-    vec3 position = unproject(in_uv, depth, inverse(frame.camera.view_proj));
+    vec3 position = unproject(uv, depth, inverse(frame.camera.view_proj));
     vec3 acc = light.color * light_contribution(light, position, normal);
 
     // FIXME: use in_position?
     // vec3 acc = light.color * light_contribution(light, in_position, normal);
 
-    out_color += vec4(albedo * acc, 1.0); // Additive blending
+    out_color = vec4(albedo * acc, 1.0); // Additive blending
 
 #ifdef DEBUG_LIGHT_CULL
     out_color = vec4(light.color, 1.0);
