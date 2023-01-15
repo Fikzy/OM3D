@@ -108,9 +108,10 @@ std::unique_ptr<Scene> create_default_scene() {
     auto scene = std::make_unique<Scene>();
 
     // Load default cube model
-    auto result = Scene::from_gltf(std::string(data_path) + "cube.glb", current_pipeline);
+    const auto cube_scene_path = std::string(data_path) + "scenes/cube.glb";
+    auto result = Scene::from_gltf(cube_scene_path, current_pipeline);
     if (result.is_ok) {
-        current_scene.emplace(std::string(data_path) + "cube.glb");
+        current_scene.emplace(cube_scene_path);
     }
 
     ALWAYS_ASSERT(result.is_ok, "Unable to load default scene");
@@ -158,7 +159,7 @@ int main(int, char**) {
     glFrontFace(GL_CCW);
 
     std::cout << "Scenes:" << std::endl;
-    for (const auto& entry : std::filesystem::directory_iterator(data_path)) {
+    for (const auto& entry : std::filesystem::directory_iterator(std::string(data_path) + "scenes/")) {
         if (entry.path().extension() == ".glb") {
             std::cout << "  - " << entry.path().filename().string() << std::endl;
             scene_paths.push_back(entry.path());
