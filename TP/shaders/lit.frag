@@ -44,7 +44,7 @@ void main() {
         discard;
     }
 
-    vec2 uv = gl_FragCoord.xy / vec2(1600, 900);
+    vec2 uv = gl_FragCoord.xy / frame.window_size;
 
 #ifndef LIGHT_CULL
     vec3 position = unproject(uv, depth, inverse(frame.camera.view_proj));

@@ -21,10 +21,11 @@ void Scene::add_object(PointLight obj) {
     _point_lights.emplace_back(std::move(obj));
 }
 
-std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(const Camera& camera) const {
+std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(const glm::uvec2& window_size, const Camera& camera) const {
     const auto buffer = std::make_shared<TypedBuffer<shader::FrameData>>(nullptr, 1);
     {
         auto mapping = buffer->map(AccessType::WriteOnly);
+        mapping[0].window_size = window_size;
         mapping[0].camera.view_proj = camera.view_proj_matrix();
         mapping[0].point_light_count = u32(_point_lights.size());
         mapping[0].sun_color = glm::vec3(1.0f, 1.0f, 1.0f);

@@ -3,13 +3,16 @@ struct CameraData {
 };
 
 struct FrameData {
-    CameraData camera;
+    vec2 window_size; // 8 bytes
+    vec2 padding_1; // 8 bytes
 
-    vec3 sun_dir;
-    uint point_light_count;
+    CameraData camera; // 64 bytes
 
-    vec3 sun_color;
-    float padding_1;
+    vec3 sun_dir; // 12 bytes
+    uint point_light_count; // 4 bytes
+
+    vec3 sun_color; // 12 bytes
+    float padding_2; // 4 bytes
 };
 
 struct PointLight {

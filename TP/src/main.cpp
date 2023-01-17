@@ -224,7 +224,7 @@ int main(int, char**) {
             process_inputs(window, scene_view.camera());
         }
 
-        const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(scene_view.camera());
+        const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(window_size, scene_view.camera());
         framedata_buffer->bind(BufferUsage::Uniform, 0);
 
         const auto lights = scene_view.scene()->get_in_frustum_lights(scene_view.camera());
