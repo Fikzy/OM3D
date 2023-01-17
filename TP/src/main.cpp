@@ -248,26 +248,28 @@ int main(int, char**) {
             framedata_buffer->bind(BufferUsage::Uniform, 0);
             glDrawArrays(GL_TRIANGLES, 0, 3);
 
-            // Light culling
-            lc_material->bind();
-            main_framebuffer.bind(false);
-            
-            for (const auto& light : lights) {
+            if (!debug) {
+                // Light culling
+                lc_material->bind();
+                main_framebuffer.bind(false);
+                
+                for (const auto& light : lights) {
 
-                // Vertex shader
-                const auto& transform = glm::translate(glm::mat4(1.0f), light->position()) * glm::scale(glm::mat4(1.0f), glm::vec3(light->radius()));
-                const auto transform_buffer = std::make_shared<TypedBuffer<shader::Model>>(nullptr, 1);
-                {
-                    auto mapping = transform_buffer->map(AccessType::WriteOnly);
-                    mapping[0] = { transform };
+                    // Vertex shader
+                    const auto& transform = glm::translate(glm::mat4(1.0f), light->position()) * glm::scale(glm::mat4(1.0f), glm::vec3(light->radius()));
+                    const auto transform_buffer = std::make_shared<TypedBuffer<shader::Model>>(nullptr, 1);
+                    {
+                        auto mapping = transform_buffer->map(AccessType::WriteOnly);
+                        mapping[0] = { transform };
+                    }
+                    transform_buffer->bind(BufferUsage::Storage, 2);
+
+                    // Fragment shader
+                    const auto light_buffer = scene_view.scene()->get_lights_buffer(std::vector{light});
+                    light_buffer->bind(BufferUsage::Storage, 1);
+
+                    sphere->draw();
                 }
-                transform_buffer->bind(BufferUsage::Storage, 2);
-
-                // Fragment shader
-                const auto light_buffer = scene_view.scene()->get_lights_buffer(std::vector{light});
-                light_buffer->bind(BufferUsage::Storage, 1);
-
-                sphere->draw();
             }
         }
 
