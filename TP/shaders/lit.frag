@@ -5,6 +5,8 @@
 
 layout(location = 0) out vec4 out_color;
 
+layout(location = 6) flat in int instanceID;
+
 layout(binding = 0) uniform sampler2D in_albedo_texture;
 layout(binding = 1) uniform sampler2D in_normal_texture;
 layout(binding = 2) uniform sampler2D in_depth_texture;
@@ -52,7 +54,7 @@ void main() {
     out_color = vec4(albedo * acc, 1.0);
 
 #else // LIGHT_CULL
-    PointLight light = point_lights[0];
+    PointLight light = point_lights[instanceID];
 
     vec3 position = unproject(uv, depth, inverse(frame.camera.view_proj));
     vec3 acc = light.color * light_contribution(light, position, normal);

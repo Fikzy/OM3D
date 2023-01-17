@@ -253,23 +253,22 @@ int main(int, char**) {
                 lc_material->bind();
                 main_framebuffer.bind(false);
                 
-                for (const auto& light : lights) {
-
-                    // Vertex shader
-                    const auto& transform = glm::translate(glm::mat4(1.0f), light->position()) * glm::scale(glm::mat4(1.0f), glm::vec3(light->radius()));
-                    const auto transform_buffer = std::make_shared<TypedBuffer<shader::Model>>(nullptr, 1);
-                    {
-                        auto mapping = transform_buffer->map(AccessType::WriteOnly);
-                        mapping[0] = { transform };
-                    }
-                    transform_buffer->bind(BufferUsage::Storage, 2);
-
-                    // Fragment shader
-                    const auto light_buffer = scene_view.scene()->get_lights_buffer(std::vector{light});
-                    light_buffer->bind(BufferUsage::Storage, 1);
-
-                    sphere->draw();
+                // Vertex shader
+                const auto transform_buffer = std::make_shared<TypedBuffer<shader::Model>>(nullptr, std::max(lights.size(), size_t(1)));
+                auto mapping = transform_buffer->map(AccessType::WriteOnly);
+                for(size_t i = 0; i != lights.size(); ++i) {
+                    const auto& light = lights[i];
+                    mapping[i] = { 
+                        glm::translate(glm::mat4(1.0f), light->position()) * glm::scale(glm::mat4(1.0f), glm::vec3(light->radius()))
+                    };
                 }
+                transform_buffer->bind(BufferUsage::Storage, 2);
+
+                // Fragment shader
+                const auto light_buffer = scene_view.scene()->get_lights_buffer(lights);
+                light_buffer->bind(BufferUsage::Storage, 1);
+
+                sphere->draw_instanced(lights.size());
             }
         }
 
@@ -344,7 +343,7 @@ int main(int, char**) {
                 ds_material->set_program(ds_program);
             }
 
-            if (ImGui::Checkbox("Debug light culling", &debug_light_cull)) {
+            if (deferred_rendering && ImGui::Checkbox("Debug light culling", &debug_light_cull)) {
                 lc_material->set_program(debug_light_cull ? debug_lc_program : lc_program);
                 lc_material->set_depth_test_mode(debug_light_cull ? DepthTestMode::Standard : DepthTestMode::Reversed);
             }

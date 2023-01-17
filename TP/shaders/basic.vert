@@ -15,6 +15,8 @@ layout(location = 3) out vec3 out_position;
 layout(location = 4) out vec3 out_tangent;
 layout(location = 5) out vec3 out_bitangent;
 
+layout(location = 6) out int instanceID;
+
 layout(binding = 0) uniform Data {
     FrameData frame;
 };
@@ -36,4 +38,6 @@ void main() {
     out_position = position.xyz;
 
     gl_Position = frame.camera.view_proj * position;
+
+    instanceID = gl_InstanceID;
 }
