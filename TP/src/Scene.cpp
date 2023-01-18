@@ -115,13 +115,18 @@ RenderInfo Scene::render_sun_shadowmap(const Camera &camera) const {
     }
 
     // Setup projection matrix
-    auto depthProjectionMatrix = glm::ortho<float>(-100, 100, -100, 100, -100, 200);
-    // TODO: move view matrix according to camera
+    auto height = 1000.0f;
+    auto reverse_z = glm::mat4(1.0f);
+    reverse_z[2][2] = -1.0f;
+    reverse_z[3][2] = 1.0f;
+    auto depthProjectionMatrix = reverse_z * glm::orthoZO<float>(-100, 100, -100, 100, -height, height);
+    
+    // Setup view matrix
     auto camera_position = camera.position();
     auto forward = _sun_direction;
     auto right = glm::cross(forward, glm::vec3(0, 1, 0));
     auto up = glm::cross(right, forward);
-    auto depthViewMatrix = glm::lookAt(_sun_direction * 100.0f, glm::vec3(0, 0, 0), up);
+    auto depthViewMatrix = glm::lookAt(camera_position + _sun_direction, camera_position, up);
 
     auto shadow_camera = Camera();
     shadow_camera.set_view(depthViewMatrix);

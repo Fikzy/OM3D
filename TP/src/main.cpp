@@ -211,7 +211,6 @@ int main(int, char**) {
     auto shadowmap_program = Program::from_files("shadowmap.frag", "shadowmap.vert");
     auto shadowmap_material = std::make_shared<Material>();
     shadowmap_material->set_program(shadowmap_program); 
-    shadowmap_material->set_depth_test_mode(DepthTestMode::Reversed);
 
     auto debug_programs = std::array{
         Program::from_files("lit.frag", "screen.vert", {"DEBUG_ALBEDO"}),
