@@ -1,6 +1,8 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
+#include <glad/glad.h>
+
 #include <graphics.h>
 #include <ImageFormat.h>
 
@@ -38,6 +40,8 @@ class Texture {
         const glm::uvec2& size() const;
 
         static u32 mip_levels(glm::uvec2 size);
+
+        void set_parameter(GLenum pname, GLint param);
 
     private:
         friend class Framebuffer;

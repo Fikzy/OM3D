@@ -199,6 +199,20 @@ int main(int, char**) {
     lc_material->set_depth_test_mode(DepthTestMode::Reversed);
     lc_material->set_depth_writing(false);
 
+    // Shadowmap setup
+    auto shadowmap_size = glm::vec2(2000, 2000);
+    auto shadowmap_texture = std::make_shared<Texture>(shadowmap_size, ImageFormat::Depth32_FLOAT);
+    shadowmap_texture->set_parameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    shadowmap_texture->set_parameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    auto shadowmap_framebuffer = Framebuffer(shadowmap_texture.get());
+
+    auto shadowmap_program = Program::from_files("shadowmap.frag", "shadowmap.vert");
+    auto shadowmap_material = std::make_shared<Material>();
+    shadowmap_material->set_program(shadowmap_program); 
+    shadowmap_material->set_depth_test_mode(DepthTestMode::Reversed);
+
     auto debug_programs = std::array{
         Program::from_files("lit.frag", "screen.vert", {"DEBUG_ALBEDO"}),
         Program::from_files("lit.frag", "screen.vert", {"DEBUG_NORMAL"}),
@@ -224,11 +238,17 @@ int main(int, char**) {
             process_inputs(window, scene_view.camera());
         }
 
-        const auto framedata_buffer = scene_view.scene()->get_framedata_buffer(window_size, scene_view.camera());
+        // Render shadowmap
+        shadowmap_framebuffer.bind();
+        shadowmap_material->bind();
+        scene_view.render_sun_shadowmap();
+
+        // Render scene
+        const auto framedata_buffer = scene->get_framedata_buffer(window_size, scene_view.camera());
         framedata_buffer->bind(BufferUsage::Uniform, 0);
 
-        const auto lights = scene_view.scene()->get_in_frustum_lights(scene_view.camera());
-        const auto lights_buffer = scene_view.scene()->get_lights_buffer(lights);
+        const auto lights = scene->get_in_frustum_lights(scene_view.camera());
+        const auto lights_buffer = scene->get_lights_buffer(lights);
         lights_buffer->bind(BufferUsage::Storage, 1);
         rendered_point_lights = lights.size();
 

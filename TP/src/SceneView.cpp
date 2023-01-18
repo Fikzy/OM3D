@@ -30,4 +30,11 @@ RenderInfo SceneView::render() const {
     return {};
 }
 
+RenderInfo SceneView::render_sun_shadowmap() const {
+    if(_scene) {
+        return _scene->render_sun_shadowmap(_camera);
+    }
+    return {};
+}
+
 }

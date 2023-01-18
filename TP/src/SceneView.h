@@ -17,6 +17,7 @@ class SceneView {
         void set_scene(const Scene* scene);
 
         RenderInfo render() const;
+        RenderInfo render_sun_shadowmap() const;
 
     private:
         const Scene* _scene = nullptr;
