@@ -35,6 +35,8 @@ class Scene : NonMovable {
         const std::vector<PointLight>& get_point_lights() { return _point_lights; }
         // const glm::vec3& get_sun_direction() const { return _sun_direction; }
 
+        glm::mat4 get_sun_view_proj(const Camera &camera) const;
+
         RenderInfo render(const Camera& camera) const;
         RenderInfo render_sun_shadowmap(const Camera& camera) const;
 
@@ -45,6 +47,7 @@ class Scene : NonMovable {
         std::vector<SceneObject> _objects;
         std::vector<PointLight> _point_lights;
         glm::vec3 _sun_direction = glm::vec3(0.2f, 1.0f, 0.1f);
+        glm::mat4 _sun_view_proj;
 };
 
 }

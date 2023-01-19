@@ -13,6 +13,8 @@ struct FrameData {
 
     vec3 sun_color; // 12 bytes
     float padding_2; // 4 bytes
+
+    mat4 sun_view_proj; // 64 bytes
 };
 
 struct PointLight {

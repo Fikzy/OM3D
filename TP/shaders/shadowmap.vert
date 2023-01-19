@@ -16,5 +16,5 @@ void main() {
     const mat4 model = models[gl_InstanceID].transform;
     const vec4 position = model * vec4(in_pos, 1.0);
 
-    gl_Position = frame.camera.view_proj * position;
+    gl_Position = frame.sun_view_proj * position;
 }

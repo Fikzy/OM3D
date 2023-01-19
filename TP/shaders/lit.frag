@@ -10,6 +10,7 @@ layout(location = 6) flat in int instanceID;
 layout(binding = 0) uniform sampler2D in_albedo_texture;
 layout(binding = 1) uniform sampler2D in_normal_texture;
 layout(binding = 2) uniform sampler2D in_depth_texture;
+layout(binding = 3) uniform sampler2D in_shadow_texture;
 
 layout(binding = 0) uniform Data {
     FrameData frame;
@@ -45,18 +46,25 @@ void main() {
     }
 
     vec2 uv = gl_FragCoord.xy / frame.window_size;
-
-#ifndef LIGHT_CULL
     vec3 position = unproject(uv, depth, inverse(frame.camera.view_proj));
 
-    vec3 acc = frame.sun_color * max(0.0, dot(frame.sun_dir, normal)) + ambient;
+#ifndef LIGHT_CULL // Compute lighting for the sun & ambient
+
+    // Check if the fragment is in the shadow
+    vec3 acc = ambient;
+
+    vec4 shadow_coord = frame.sun_view_proj * vec4(position, 1.0);
+    vec2 shadow_texture_coord = (shadow_coord.xy + 1) / 2;
+    float shadow_depth = texture(in_shadow_texture, shadow_texture_coord).r;
+    if (shadow_depth <= shadow_coord.z) {
+        acc += frame.sun_color * max(0.0, dot(frame.sun_dir, normal));
+    }
 
     out_color = vec4(albedo * acc, 1.0);
 
 #else // LIGHT_CULL
     PointLight light = point_lights[instanceID];
 
-    vec3 position = unproject(uv, depth, inverse(frame.camera.view_proj));
     vec3 acc = light.color * light_contribution(light, position, normal);
 
     out_color = vec4(albedo * acc, 1.0); // Additive blending

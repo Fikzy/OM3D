@@ -30,6 +30,7 @@ std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(cons
         mapping[0].point_light_count = u32(_point_lights.size());
         mapping[0].sun_color = glm::vec3(1.0f, 1.0f, 1.0f);
         mapping[0].sun_dir = glm::normalize(_sun_direction);
+        mapping[0].sun_view_proj = get_sun_view_proj(camera);
     }
     return buffer;
 }
@@ -105,6 +106,26 @@ RenderInfo Scene::render(const Camera& camera) const {
     };
 }
 
+glm::mat4 Scene::get_sun_view_proj(const Camera &camera) const {
+    // Setup projection matrix
+    auto height = 1000.0f;
+    auto reverse_z = glm::mat4(1.0f);
+    reverse_z[2][2] = -1.0f;
+    reverse_z[3][2] = 1.0f;
+    auto shadow_proj = reverse_z * glm::orthoZO<float>(-100, 100, -100, 100, -height, height);
+    
+    // Setup view matrix
+    auto camera_position = camera.position();
+    auto forward = _sun_direction;
+    auto right = glm::cross(forward, glm::vec3(0, 1, 0));
+    auto up = glm::cross(right, forward);
+    auto shadow_view = glm::lookAt(camera_position + _sun_direction, camera_position, up);
+
+    auto sun_view_proj = shadow_proj * shadow_view;
+
+    return sun_view_proj;
+}
+
 RenderInfo Scene::render_sun_shadowmap(const Camera &camera) const {
     // TODO: frustum culling
     auto map = std::unordered_map<size_t, std::vector<const SceneObject*>>();
@@ -113,27 +134,6 @@ RenderInfo Scene::render_sun_shadowmap(const Camera &camera) const {
         size_t key = obj.get_mesh()->hash;
         map[key].push_back(&obj);
     }
-
-    // Setup projection matrix
-    auto height = 1000.0f;
-    auto reverse_z = glm::mat4(1.0f);
-    reverse_z[2][2] = -1.0f;
-    reverse_z[3][2] = 1.0f;
-    auto depthProjectionMatrix = reverse_z * glm::orthoZO<float>(-100, 100, -100, 100, -height, height);
-    
-    // Setup view matrix
-    auto camera_position = camera.position();
-    auto forward = _sun_direction;
-    auto right = glm::cross(forward, glm::vec3(0, 1, 0));
-    auto up = glm::cross(right, forward);
-    auto depthViewMatrix = glm::lookAt(camera_position + _sun_direction, camera_position, up);
-
-    auto shadow_camera = Camera();
-    shadow_camera.set_view(depthViewMatrix);
-    shadow_camera.set_proj(depthProjectionMatrix);
-    
-    const auto framedata_buffer = get_framedata_buffer(glm::vec2(0, 0), shadow_camera);
-    framedata_buffer->bind(BufferUsage::Uniform, 0);
 
     // Render every object
     for (const auto& pair : map) {
@@ -156,6 +156,11 @@ RenderInfo Scene::render_sun_shadowmap(const Camera &camera) const {
         auto mesh = objects[0]->get_mesh();
         mesh->draw_instanced(objects.size());
     }
+
+    return RenderInfo{
+        _objects.size(),
+        map.size(),
+    };
 }
 
 }

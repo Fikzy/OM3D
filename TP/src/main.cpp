@@ -167,9 +167,18 @@ int main(int, char**) {
     ALWAYS_ASSERT(sphere_scene.is_ok, "Unable to load sphere");
     auto sphere = sphere_scene.value->get_objects()[0].get_mesh();
 
-    auto tonemap_program = Program::from_file("tonemap.comp");
-    auto color = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM);
-    Framebuffer tonemap_framebuffer(nullptr, std::array{color.get()});
+    // Shadowmap setup
+    auto shadowmap_size = glm::vec2(2000, 2000);
+    auto shadowmap_texture = std::make_shared<Texture>(shadowmap_size, ImageFormat::Depth32_FLOAT);
+    shadowmap_texture->set_parameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    shadowmap_texture->set_parameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    auto shadowmap_framebuffer = Framebuffer(shadowmap_texture.get());
+
+    auto shadowmap_program = Program::from_files("shadowmap.frag", "shadowmap.vert");
+    auto shadowmap_material = std::make_shared<Material>();
+    shadowmap_material->set_program(shadowmap_program);
 
     auto albedo = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM); // do not use RGBA8_sRGB!
     auto normal = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM);
@@ -185,6 +194,7 @@ int main(int, char**) {
     ds_material->set_texture(0u, albedo);
     ds_material->set_texture(1u, normal);
     ds_material->set_texture(2u, depth);
+    ds_material->set_texture(3u, shadowmap_texture);
     ds_material->set_blend_mode(BlendMode::Alpha);
     ds_material->set_depth_test_mode(DepthTestMode::None);
     ds_material->set_depth_writing(false);
@@ -199,18 +209,9 @@ int main(int, char**) {
     lc_material->set_depth_test_mode(DepthTestMode::Reversed);
     lc_material->set_depth_writing(false);
 
-    // Shadowmap setup
-    auto shadowmap_size = glm::vec2(2000, 2000);
-    auto shadowmap_texture = std::make_shared<Texture>(shadowmap_size, ImageFormat::Depth32_FLOAT);
-    shadowmap_texture->set_parameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    shadowmap_texture->set_parameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    auto shadowmap_framebuffer = Framebuffer(shadowmap_texture.get());
-
-    auto shadowmap_program = Program::from_files("shadowmap.frag", "shadowmap.vert");
-    auto shadowmap_material = std::make_shared<Material>();
-    shadowmap_material->set_program(shadowmap_program); 
+    auto tonemap_program = Program::from_file("tonemap.comp");
+    auto color = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM);
+    Framebuffer tonemap_framebuffer(nullptr, std::array{color.get()});
 
     auto debug_programs = std::array{
         Program::from_files("lit.frag", "screen.vert", {"DEBUG_ALBEDO"}),
@@ -237,15 +238,16 @@ int main(int, char**) {
             process_inputs(window, scene_view.camera());
         }
 
+        // Update frame data
+        const auto framedata_buffer = scene->get_framedata_buffer(window_size, scene_view.camera());
+        framedata_buffer->bind(BufferUsage::Uniform, 0);
+
         // Render shadowmap
         shadowmap_framebuffer.bind();
         shadowmap_material->bind();
         scene_view.render_sun_shadowmap();
 
         // Render scene
-        const auto framedata_buffer = scene->get_framedata_buffer(window_size, scene_view.camera());
-        framedata_buffer->bind(BufferUsage::Uniform, 0);
-
         const auto lights = scene->get_in_frustum_lights(scene_view.camera());
         const auto lights_buffer = scene->get_lights_buffer(lights);
         lights_buffer->bind(BufferUsage::Storage, 1);
