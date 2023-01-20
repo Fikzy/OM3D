@@ -1,9 +1,7 @@
-#version 450 core
+#version 450
 
-// Ouput data
 layout(location = 0) out float fragmentdepth;
 
-void main(){
-    // Not really needed, OpenGL does it anyway
+void main() {
     fragmentdepth = gl_FragCoord.z;
 }

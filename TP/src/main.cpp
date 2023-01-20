@@ -172,8 +172,10 @@ int main(int, char**) {
     auto shadowmap_texture = std::make_shared<Texture>(shadowmap_size, ImageFormat::Depth32_FLOAT);
     shadowmap_texture->set_parameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     shadowmap_texture->set_parameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float border_color[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    shadowmap_texture->set_parameter(GL_TEXTURE_BORDER_COLOR, border_color);
     auto shadowmap_framebuffer = Framebuffer(shadowmap_texture.get());
 
     auto shadowmap_program = Program::from_files("shadowmap.frag", "shadowmap.vert");
@@ -245,6 +247,7 @@ int main(int, char**) {
         // Render shadowmap
         shadowmap_framebuffer.bind();
         shadowmap_material->bind();
+        glCullFace(GL_FRONT);
         scene_view.render_sun_shadowmap();
 
         // Render scene

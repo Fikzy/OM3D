@@ -40,6 +40,7 @@ class Texture {
         static u32 mip_levels(glm::uvec2 size);
 
         void set_parameter(int pname, int param);
+        void set_parameter(int pname, float* param);
 
     private:
         friend class Framebuffer;

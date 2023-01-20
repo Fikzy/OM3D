@@ -112,7 +112,7 @@ glm::mat4 Scene::get_sun_view_proj(const Camera &camera) const {
     auto reverse_z = glm::mat4(1.0f);
     reverse_z[2][2] = -1.0f;
     reverse_z[3][2] = 1.0f;
-    auto shadow_proj = reverse_z * glm::orthoZO<float>(-100, 100, -100, 100, -height, height);
+    auto shadow_proj = reverse_z * glm::orthoZO<float>(-50, 50, -50, 50, -height, height);
     
     // Setup view matrix
     auto camera_position = camera.position();
