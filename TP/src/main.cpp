@@ -312,85 +312,91 @@ int main(int, char**) {
         // GUI
         imgui.start();
         {
-            auto window_max_size = ImGui::GetWindowContentRegionMax();
-            for (const auto& path : scene_paths) {
-                auto item_width = ImGui::CalcTextSize(path.filename().string().c_str(), nullptr).x;
-                // Compare current line width with the window width
-                if (ImGui::GetItemRectMax().x + item_width < window_max_size.x) {
-                    ImGui::SameLine();
-                }
+            if (ImGui::CollapsingHeader("Scene", ImGuiTreeNodeFlags_DefaultOpen)) {
+                auto window_max_size = ImGui::GetWindowContentRegionMax();
+                for (const auto& path : scene_paths) {
+                    auto item_width = ImGui::CalcTextSize(path.filename().string().c_str(), nullptr).x;
+                    // Compare current line width with the window width
+                    if (ImGui::GetItemRectMax().x + item_width < window_max_size.x) {
+                        ImGui::SameLine();
+                    }
 
-                bool disabled = path == current_scene;
-                if (disabled) {
-                    ImGui::BeginDisabled();
+                    bool disabled = path == current_scene;
+                    if (disabled) {
+                        ImGui::BeginDisabled();
+                    }
+                    if (ImGui::Button(path.filename().string().c_str())) {
+                        auto result = Scene::from_gltf(path.string(), current_pipeline);
+                        if(!result.is_ok) {
+                            std::cerr << "Unable to load scene (" << path.string() << ")" << std::endl;
+                        } else {
+                            scene = std::move(result.value);
+                            scene_view = SceneView(scene.get());
+                            current_scene = path;
+                        }
+                        deferred_rendering = true;
+                    }
+                    if (disabled) {
+                        ImGui::EndDisabled();
+                    }
                 }
-                if (ImGui::Button(path.filename().string().c_str())) {
-                    auto result = Scene::from_gltf(path.string(), current_pipeline);
+                ImGui::NewLine();
+
+                if (ImGui::SliderFloat3("Sun direction", glm::value_ptr(sun_direction), -1.0f, 1.0f)) {
+                    scene_view.scene()->set_sun_direction(sun_direction);
+                }
+                ImGui::NewLine();
+            }
+
+            if (ImGui::CollapsingHeader("Render info", ImGuiTreeNodeFlags_DefaultOpen)) {
+                ImGui::Text("  - camera position: (x: %.2f, y: %.2f, z: %.2f)", scene_view.camera().position().x, scene_view.camera().position().y, scene_view.camera().position().z);
+                ImGui::Text("  - scene objects: %zu", render_info.scene_objects);
+                ImGui::Text("  - draw instanced calls: %zu", render_info.draw_instanced_calls);
+                ImGui::Text("  - points lights: %zu", scene->get_point_light_count());
+                ImGui::Text("  - rendered points lights: %zu", rendered_point_lights);
+                ImGui::NewLine();
+            }
+
+            if (ImGui::CollapsingHeader("Debug")) {
+                if (ImGui::Checkbox("Deferred rendering", &deferred_rendering) || (!deferred_rendering && debug_updated)) {
+                    current_pipeline = deferred_rendering ? DEFERRED_PIPELINE : FORWARD_PIPELINE;
+                    auto result = Scene::from_gltf(current_scene->string(), current_pipeline,
+                        debug ? Span<const std::string>{debug_defines[debug_shader]} : Span<const std::string>{});
                     if(!result.is_ok) {
-                        std::cerr << "Unable to load scene (" << path.string() << ")" << std::endl;
+                        std::cerr << "Unable to reload scene (" << current_scene->string() << ")" << std::endl;
                     } else {
                         scene = std::move(result.value);
-                        scene_view = SceneView(scene.get());
-                        current_scene = path;
+                        scene_view.set_scene(scene.get());
+                        std::cout << "Set rendering pipeline to: {\"" << current_pipeline.first << "\", \"" << current_pipeline.second << "\"}" << std::endl;
                     }
-                    deferred_rendering = true;
                 }
-                if (disabled) {
-                    ImGui::EndDisabled();
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                    ImGui::SetTooltip("Warning: reloads entire scene");
                 }
-            }
-            ImGui::NewLine();
+                ImGui::Checkbox("Tonemapping", &tonemapping);
 
-            if (ImGui::Checkbox("Deferred rendering", &deferred_rendering) || (!deferred_rendering && debug_updated)) {
-                current_pipeline = deferred_rendering ? DEFERRED_PIPELINE : FORWARD_PIPELINE;
-                auto result = Scene::from_gltf(current_scene->string(), current_pipeline,
-                    debug ? Span<const std::string>{debug_defines[debug_shader]} : Span<const std::string>{});
-                if(!result.is_ok) {
-                    std::cerr << "Unable to reload scene (" << current_scene->string() << ")" << std::endl;
+                ImGui::NewLine();
+
+                debug_updated = ImGui::Checkbox("Debug shader", &debug);
+                if (debug) {
+
+                    debug_updated |= ImGui::RadioButton("Albedo", &debug_shader, 0);
+                    debug_updated |= ImGui::RadioButton("Normal", &debug_shader, 1);
+                    if (deferred_rendering) {
+                        debug_updated |= ImGui::RadioButton("Depth", &debug_shader, 2);
+                    }
+
+                    ds_material->set_program(debug_programs[debug_shader]);
                 } else {
-                    scene = std::move(result.value);
-                    scene_view.set_scene(scene.get());
-                    std::cout << "Set rendering pipeline to: {\"" << current_pipeline.first << "\", \"" << current_pipeline.second << "\"}" << std::endl;
-                }
-            }
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                ImGui::SetTooltip("Warning: reloads entire scene");
-            }
-
-            ImGui::Checkbox("Tonemapping", &tonemapping);
-            ImGui::NewLine();
-
-            debug_updated = ImGui::Checkbox("Debug shader", &debug);
-            if (debug) {
-
-                debug_updated |= ImGui::RadioButton("Albedo", &debug_shader, 0);
-                debug_updated |= ImGui::RadioButton("Normal", &debug_shader, 1);
-                if (deferred_rendering) {
-                    debug_updated |= ImGui::RadioButton("Depth", &debug_shader, 2);
+                    ds_material->set_program(ds_program);
                 }
 
-                ds_material->set_program(debug_programs[debug_shader]);
-            } else {
-                ds_material->set_program(ds_program);
+                if (deferred_rendering && ImGui::Checkbox("Debug light culling", &debug_light_cull)) {
+                    lc_material->set_program(debug_light_cull ? debug_lc_program : lc_program);
+                    lc_material->set_depth_test_mode(debug_light_cull ? DepthTestMode::Standard : DepthTestMode::Reversed);
+                }
+                ImGui::NewLine();
             }
-
-            if (deferred_rendering && ImGui::Checkbox("Debug light culling", &debug_light_cull)) {
-                lc_material->set_program(debug_light_cull ? debug_lc_program : lc_program);
-                lc_material->set_depth_test_mode(debug_light_cull ? DepthTestMode::Standard : DepthTestMode::Reversed);
-            }
-            ImGui::NewLine();
-
-            if (ImGui::SliderFloat3("Sun direction", glm::value_ptr(sun_direction), -1.0f, 1.0f)) {
-                scene_view.scene()->set_sun_direction(sun_direction);
-            }
-            ImGui::NewLine();
-
-            ImGui::Text("Render info:");
-            ImGui::Text("  - camera position: (x: %.2f, y: %.2f, z: %.2f)", scene_view.camera().position().x, scene_view.camera().position().y, scene_view.camera().position().z);
-            ImGui::Text("  - scene objects: %zu", render_info.scene_objects);
-            ImGui::Text("  - draw instanced calls: %zu", render_info.draw_instanced_calls);
-            ImGui::Text("  - points lights: %zu", scene->get_point_light_count());
-            ImGui::Text("  - rendered points lights: %zu", rendered_point_lights);
         }
         imgui.finish();
 
