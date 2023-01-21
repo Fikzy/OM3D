@@ -6,6 +6,7 @@
 #include <utils.h>
 
 #include <algorithm>
+#include <iostream>
 #include <unordered_map>
 
 namespace OM3D {
@@ -112,7 +113,6 @@ glm::mat4 Scene::get_sun_view_proj(const Camera &camera, const float near, const
     auto forward = _sun_direction;
     auto right = glm::cross(forward, glm::vec3(0, 1, 0));
     auto up = glm::cross(right, forward);
-    auto light_view = glm::lookAt(glm::vec3(0.0f), _sun_direction, up);
 
     // Tight ortho projection for sun shadowmap
     auto frustum = camera.build_frustum();
@@ -138,7 +138,7 @@ glm::mat4 Scene::get_sun_view_proj(const Camera &camera, const float near, const
         top_left_near, top_right_near, bottom_left_near, bottom_right_near,
         top_left_far, top_right_far, bottom_left_far, bottom_right_far
     }) {
-        const auto& light_space_corner = glm::vec3(light_view * corner);
+        const auto& light_space_corner = glm::vec3(corner);
         min = glm::min(min, light_space_corner);
         max = glm::max(max, light_space_corner);
     }
@@ -147,11 +147,10 @@ glm::mat4 Scene::get_sun_view_proj(const Camera &camera, const float near, const
     auto light_pos = glm::vec4((min + max) / 2.0f, 1.0f);
 
     // - transform center of bounding box to world space
-    auto inv_light_view = glm::inverse(light_view);
-    auto light_pos_world = glm::vec3(inv_light_view * light_pos);
+    auto light_pos_world = glm::vec3(light_pos);
 
-    // - compute new light view matrix
-    light_view = glm::lookAt(light_pos_world, light_pos_world + _sun_direction, up);
+    // - compute light view matrix
+    auto light_view = glm::lookAt(light_pos_world, light_pos_world - _sun_direction, up);
 
     min = glm::vec3(std::numeric_limits<float>::max());
     max = glm::vec3(std::numeric_limits<float>::min());
@@ -164,17 +163,25 @@ glm::mat4 Scene::get_sun_view_proj(const Camera &camera, const float near, const
         max = glm::max(max, light_space_corner);
     }
 
-    // Setup view matrix
-    auto shadow_view = glm::lookAt(camera_position + _sun_direction, camera_position, up);
-
     // Setup projection matrix
     auto height = 1000.0f;
     auto reverse_z = glm::mat4(1.0f);
     reverse_z[2][2] = -1.0f;
     reverse_z[3][2] = 1.0f;
-    auto shadow_proj = reverse_z * glm::orthoZO<float>(min.x, max.x, min.z, max.z, -height, height);
 
-    auto sun_view_proj = shadow_proj * shadow_view;
+    // Attempt at shimmering shadow fix
+    // auto texel_size = (max - min) / 2000.0f;
+    // min = glm::floor(min / texel_size) * texel_size;
+    // max = glm::floor(max / texel_size) * texel_size;
+
+    // light_pos_world = glm::floor(light_pos_world / texel_size) * texel_size;
+    // light_view = glm::lookAt(light_pos_world, light_pos_world - _sun_direction, up);
+
+    // std::cout << "x: " << min.x << " - " << max.x << " | y: " << min.y << " - " << max.y << std::endl;
+
+    auto shadow_proj = reverse_z * glm::orthoZO<float>(min.x, max.x, min.y, max.y, -height, height);
+
+    auto sun_view_proj = shadow_proj * light_view;
 
     return sun_view_proj;
 }

@@ -20,7 +20,7 @@ layout(binding = 1) buffer PointLights {
     PointLight point_lights[];
 };
 
-const vec3 ambient = vec3(0.0);
+const vec3 ambient = vec3(0.02);
 
 float light_contribution(PointLight light, vec3 frag_pos, vec3 normal) {
     const vec3 to_light = (light.position - frag_pos);
