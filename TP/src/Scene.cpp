@@ -31,7 +31,7 @@ std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(cons
         mapping[0].point_light_count = u32(_point_lights.size());
         mapping[0].sun_color = glm::vec3(1.0f, 1.0f, 1.0f);
         mapping[0].sun_dir = glm::normalize(_sun_direction);
-        mapping[0].sun_view_proj = get_sun_view_proj(camera, 0.001f, 100.0f);
+        mapping[0].sun_view_proj = get_sun_view_proj(camera, 0.001f, 15.0f);
     }
     return buffer;
 }
@@ -117,71 +117,30 @@ glm::mat4 Scene::get_sun_view_proj(const Camera &camera, const float near, const
     // Tight ortho projection for sun shadowmap
     auto frustum = camera.build_frustum();
     auto top_left = glm::cross(frustum._left_normal, frustum._top_normal);
-    auto top_right = glm::cross(frustum._top_normal, frustum._right_normal);
-    auto bottom_left = glm::cross(frustum._right_normal, frustum._bottom_normal);
-    auto bottom_right = glm::cross(frustum._bottom_normal, frustum._left_normal);
-
-    // - compute 8 corners of the frustum in world space
-    auto top_left_near = glm::vec4(camera_position + top_left * near, 1.0f);
-    auto top_right_near = glm::vec4(camera_position + top_right * near, 1.0f);
-    auto bottom_left_near = glm::vec4(camera_position + bottom_left * near, 1.0f);
-    auto bottom_right_near = glm::vec4(camera_position + bottom_right * near, 1.0f);
     auto top_left_far = glm::vec4(camera_position + top_left * far, 1.0f);
-    auto top_right_far = glm::vec4(camera_position + top_right * far, 1.0f);
-    auto bottom_left_far = glm::vec4(camera_position + bottom_left * far, 1.0f);
-    auto bottom_right_far = glm::vec4(camera_position + bottom_right * far, 1.0f);
 
-    // - compute axis aligned bounding box in light space
-    glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
-    glm::vec3 max = glm::vec3(std::numeric_limits<float>::min());
-    for (const auto& corner : {
-        top_left_near, top_right_near, bottom_left_near, bottom_right_near,
-        top_left_far, top_right_far, bottom_left_far, bottom_right_far
-    }) {
-        const auto& light_space_corner = glm::vec3(corner);
-        min = glm::min(min, light_space_corner);
-        max = glm::max(max, light_space_corner);
-    }
+    auto frustum_center = camera.forward() * (near + (far - near) * 0.5f) + camera_position;
+    auto radius = glm::length(frustum_center - glm::vec3(top_left_far));
 
-    // - compute center of the bounding box in light space
-    auto light_pos = glm::vec4((min + max) / 2.0f, 1.0f);
+    auto light_space_matrix = glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f) - _sun_direction, up);
 
-    // - transform center of bounding box to world space
-    auto light_pos_world = glm::vec3(light_pos);
+    auto light_pos_light_space = light_space_matrix * glm::vec4(frustum_center, 1.0f);
 
-    // - compute light view matrix
-    auto light_view = glm::lookAt(light_pos_world, light_pos_world - _sun_direction, up);
+    auto texel_size = 2.0f * radius / 2000.0f;
+    light_pos_light_space = glm::floor(light_pos_light_space / texel_size) * texel_size;
 
-    min = glm::vec3(std::numeric_limits<float>::max());
-    max = glm::vec3(std::numeric_limits<float>::min());
-    for (const auto& corner : {
-        top_left_near, top_right_near, bottom_left_near, bottom_right_near,
-        top_left_far, top_right_far, bottom_left_far, bottom_right_far
-    }) {
-        const auto& light_space_corner = glm::vec3(light_view * corner);
-        min = glm::min(min, light_space_corner);
-        max = glm::max(max, light_space_corner);
-    }
+    auto light_pos = glm::vec3(glm::inverse(light_space_matrix) * light_pos_light_space);
+    light_space_matrix = glm::lookAt(light_pos, light_pos - _sun_direction, up);
 
     // Setup projection matrix
-    auto height = 1000.0f;
     auto reverse_z = glm::mat4(1.0f);
     reverse_z[2][2] = -1.0f;
     reverse_z[3][2] = 1.0f;
 
-    // Attempt at shimmering shadow fix
-    // auto texel_size = (max - min) / 2000.0f;
-    // min = glm::floor(min / texel_size) * texel_size;
-    // max = glm::floor(max / texel_size) * texel_size;
+    auto margin = 1000.0f;
+    auto shadow_proj = reverse_z * glm::orthoZO<float>(-radius, radius, -radius, radius, -margin, margin);
 
-    // light_pos_world = glm::floor(light_pos_world / texel_size) * texel_size;
-    // light_view = glm::lookAt(light_pos_world, light_pos_world - _sun_direction, up);
-
-    // std::cout << "x: " << min.x << " - " << max.x << " | y: " << min.y << " - " << max.y << std::endl;
-
-    auto shadow_proj = reverse_z * glm::orthoZO<float>(min.x, max.x, min.y, max.y, -height, height);
-
-    auto sun_view_proj = shadow_proj * light_view;
+    auto sun_view_proj = shadow_proj * light_space_matrix;
 
     return sun_view_proj;
 }
