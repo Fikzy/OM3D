@@ -2,7 +2,7 @@
 
 namespace OM3D {
 
-SceneView::SceneView(const Scene* scene) : _scene(scene) {
+SceneView::SceneView(Scene* scene) : _scene(scene) {
 }
 
 Camera& SceneView::camera() {
@@ -13,11 +13,11 @@ const Camera& SceneView::camera() const {
     return _camera;
 }
 
-const Scene* SceneView::scene() const {
+Scene* SceneView::scene() const {
     return _scene;
 }
 
-void SceneView::set_scene(const Scene* scene) {
+void SceneView::set_scene(Scene* scene) {
     if (scene) {
         _scene = scene;
     }

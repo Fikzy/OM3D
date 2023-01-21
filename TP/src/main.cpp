@@ -2,6 +2,7 @@
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 #include <filesystem>
@@ -156,6 +157,7 @@ int main(int, char**) {
     bool debug_light_cull = false;
     bool deferred_rendering = true;
     bool tonemapping = true;
+    glm::vec3 sun_direction = glm::vec3(0.2f, 1.0f, 0.1f);
 
     RenderInfo render_info;
     size_t rendered_point_lights = 0;
@@ -310,7 +312,14 @@ int main(int, char**) {
         // GUI
         imgui.start();
         {
+            auto window_max_size = ImGui::GetWindowContentRegionMax();
             for (const auto& path : scene_paths) {
+                auto item_width = ImGui::CalcTextSize(path.filename().string().c_str(), nullptr).x;
+                // Compare current line width with the window width
+                if (ImGui::GetItemRectMax().x + item_width < window_max_size.x) {
+                    ImGui::SameLine();
+                }
+
                 bool disabled = path == current_scene;
                 if (disabled) {
                     ImGui::BeginDisabled();
@@ -329,9 +338,7 @@ int main(int, char**) {
                 if (disabled) {
                     ImGui::EndDisabled();
                 }
-                ImGui::SameLine();
             }
-            ImGui::NewLine();
             ImGui::NewLine();
 
             if (ImGui::Checkbox("Deferred rendering", &deferred_rendering) || (!deferred_rendering && debug_updated)) {
@@ -373,7 +380,13 @@ int main(int, char**) {
             }
             ImGui::NewLine();
 
+            if (ImGui::SliderFloat3("Sun direction", glm::value_ptr(sun_direction), -1.0f, 1.0f)) {
+                scene_view.scene()->set_sun_direction(sun_direction);
+            }
+            ImGui::NewLine();
+
             ImGui::Text("Render info:");
+            ImGui::Text("  - camera position: (x: %.2f, y: %.2f, z: %.2f)", scene_view.camera().position().x, scene_view.camera().position().y, scene_view.camera().position().z);
             ImGui::Text("  - scene objects: %zu", render_info.scene_objects);
             ImGui::Text("  - draw instanced calls: %zu", render_info.draw_instanced_calls);
             ImGui::Text("  - points lights: %zu", scene->get_point_light_count());

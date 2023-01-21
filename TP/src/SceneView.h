@@ -8,19 +8,19 @@ namespace OM3D {
 
 class SceneView {
     public:
-        SceneView(const Scene* scene = nullptr);
+        SceneView(Scene* scene = nullptr);
 
         Camera& camera();
         const Camera& camera() const;
 
-        const Scene* scene() const;
-        void set_scene(const Scene* scene);
+        Scene* scene() const;
+        void set_scene(Scene* scene);
 
         RenderInfo render() const;
         RenderInfo render_sun_shadowmap() const;
 
     private:
-        const Scene* _scene = nullptr;
+        Scene* _scene = nullptr;
         Camera _camera;
 
 };
