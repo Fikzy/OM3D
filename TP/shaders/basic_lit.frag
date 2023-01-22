@@ -23,8 +23,6 @@ layout(binding = 1) buffer PointLights {
     PointLight point_lights[];
 };
 
-const vec3 ambient = vec3(0.08, 0.06, 0.05) * 1.5;
-
 void main() {
 #ifdef NORMAL_MAPPED
     const vec3 normal_map = unpack_normal_map(texture(in_normal_texture, in_uv).xy);
@@ -35,7 +33,7 @@ void main() {
     const vec3 normal = in_normal;
 #endif
 
-    vec3 acc = frame.sun_color * max(0.0, dot(frame.sun_dir, normal)) + ambient;
+    vec3 acc = frame.sun_color * max(0.0, dot(frame.sun_dir, normal)) + frame.ambient;
 
     for(uint i = 0; i != frame.point_light_count; ++i) {
         PointLight light = point_lights[i];

@@ -158,12 +158,19 @@ int main(int, char**) {
     bool debug_shadowmap = false;
     bool deferred_rendering = true;
     bool tonemapping = true;
-    glm::vec3 sun_direction = glm::vec3(0.2f, 1.0f, 0.1f);
+
+    float ambient_intensity = 0.15f;
+    glm::vec3 sun_direction = glm::vec3(-0.45f, 1.0f, 0.1f);
+    glm::vec3 sun_color = glm::vec3(1.0f, 1.0f, 1.0f);
+    float sun_intensity = 4.0f;
 
     RenderInfo render_info;
     size_t rendered_point_lights = 0;
 
     std::unique_ptr<Scene> scene = create_default_scene();
+    scene->set_ambient(glm::vec3(ambient_intensity));
+    scene->set_sun_direction(sun_direction);
+    scene->set_sun_color(sun_color * sun_intensity);
     SceneView scene_view(scene.get());
 
     auto sphere_scene = Scene::from_gltf(std::string(data_path) + "meshes/sphere.glb", current_pipeline);
@@ -331,6 +338,9 @@ int main(int, char**) {
                             std::cerr << "Unable to load scene (" << path.string() << ")" << std::endl;
                         } else {
                             scene = std::move(result.value);
+                            scene->set_ambient(glm::vec3(ambient_intensity));
+                            scene->set_sun_direction(sun_direction);
+                            scene->set_sun_color(sun_color * sun_intensity);
                             scene_view = SceneView(scene.get());
                             current_scene = path;
                         }
@@ -342,8 +352,17 @@ int main(int, char**) {
                 }
                 ImGui::NewLine();
 
+                if (ImGui::SliderFloat("Ambient", &ambient_intensity, 0.0f, 1.0f)) {
+                    scene_view.scene()->set_ambient(glm::vec3(ambient_intensity));
+                }
                 if (ImGui::SliderFloat3("Sun direction", glm::value_ptr(sun_direction), -1.0f, 1.0f)) {
                     scene_view.scene()->set_sun_direction(sun_direction);
+                }
+                if (ImGui::SliderFloat3("Sun color", glm::value_ptr(sun_color), 0.0f, 1.0f)) {
+                    scene_view.scene()->set_sun_color(sun_color * sun_intensity);
+                }
+                if (ImGui::SliderFloat("Sun intensity", &sun_intensity, 0.0f, 10.0f)) {
+                    scene_view.scene()->set_sun_color(sun_color * sun_intensity);
                 }
                 ImGui::NewLine();
             }

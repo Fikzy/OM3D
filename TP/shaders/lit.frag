@@ -20,8 +20,6 @@ layout(binding = 1) buffer PointLights {
     PointLight point_lights[];
 };
 
-const vec3 ambient = vec3(0.08, 0.06, 0.05) * 1.5;
-
 float light_contribution(PointLight light, vec3 frag_pos, vec3 normal) {
     const vec3 to_light = (light.position - frag_pos);
     const float dist = length(to_light);
@@ -51,7 +49,7 @@ void main() {
 #ifndef LIGHT_CULL // Compute lighting for the sun & ambient
 
     // Check if the fragment is in the shadow
-    vec3 acc = ambient;
+    vec3 acc = frame.ambient;
 
     float z_camera = 0.001 / depth;
     uint layer = frame.shadow_map_levels - 1;
@@ -74,6 +72,8 @@ void main() {
         }
     }
     shadow_factor /= 9.0;
+
+    shadow_factor = mix(0.1, 1.0, shadow_factor); // fake global illumination
 
     acc += shadow_factor * frame.sun_color * max(0.0, dot(frame.sun_dir, normal));
     out_color = vec4(albedo * acc, 1.0);

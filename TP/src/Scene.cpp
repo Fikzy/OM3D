@@ -28,12 +28,12 @@ std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(cons
         auto mapping = buffer->map(AccessType::WriteOnly);
         mapping[0].window_size = window_size;
         mapping[0].camera.view_proj = camera.view_proj_matrix();
-        mapping[0].point_light_count = u32(_point_lights.size());
-        mapping[0].sun_color = glm::vec3(1.0f, 0.8f, 0.4f);
+        mapping[0].ambient = _ambient;
+        mapping[0].sun_color = _sun_color;
         mapping[0].sun_dir = glm::normalize(_sun_direction);
 
         mapping[0].shadow_map_levels = 4;
-        const float depths[] = { 5.0f, 20.0f, 60.0f, 200.0f};
+        const float depths[] = { 10.0f, 30.0f, 90.0f, 270.0f};
         for (size_t i = 0; i != 4; ++i)
             mapping[0].depth_levels[i] = depths[i];
         mapping[0].sun_view_projs[0] = get_sun_view_proj(camera, 0.001f, depths[0]);

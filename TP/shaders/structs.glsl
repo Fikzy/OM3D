@@ -8,8 +8,11 @@ struct FrameData {
 
     CameraData camera; // 64 bytes
 
+    vec3 ambient; // 12 bytes
+    uint padding_2; // 4 bytes
+
     vec3 sun_dir; // 12 bytes
-    uint point_light_count; // 4 bytes
+    uint padding_3; // 4 bytes
 
     vec3 sun_color; // 12 bytes
     uint shadow_map_levels; // 4 bytes
