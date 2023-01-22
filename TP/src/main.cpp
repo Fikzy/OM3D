@@ -151,10 +151,11 @@ int main(int, char**) {
     }
 
     ImGuiRenderer imgui(window);
-    bool debug = false;
-    bool debug_updated = false;
-    int debug_shader = 0;
+    bool debug_texture = false;
+    bool debug_texture_updated = false;
+    int dbg_tex_idx = 0;
     bool debug_light_cull = false;
+    bool debug_shadowmap = false;
     bool deferred_rendering = true;
     bool tonemapping = true;
     glm::vec3 sun_direction = glm::vec3(0.2f, 1.0f, 0.1f);
@@ -218,18 +219,14 @@ int main(int, char**) {
     auto color = std::make_shared<Texture>(window_size, ImageFormat::RGBA8_UNORM);
     Framebuffer tonemap_framebuffer(nullptr, std::array{color.get()});
 
-    auto debug_programs = std::array{
-        Program::from_files("lit.frag", "screen.vert", std::vector<std::string>{"DEBUG_ALBEDO"}),
-        Program::from_files("lit.frag", "screen.vert", std::vector<std::string>{"DEBUG_NORMAL"}),
-        Program::from_files("lit.frag", "screen.vert", std::vector<std::string>{"DEBUG_DEPTH"}),
-    };
-    auto debug_defines = std::array{
+    auto debug_texture_defines = std::array{
         "DEBUG_ALBEDO",
         "DEBUG_NORMAL",
         "DEBUG_DEPTH",
     };
 
     auto debug_lc_program = Program::from_files("lit.frag", "basic.vert", std::vector<std::string>{"LIGHT_CULL", "DEBUG_LIGHT_CULL"});
+    auto debug_shdmap_program = Program::from_files("lit.frag", "screen.vert", std::vector<std::string>{"DEBUG_SHADOW_MAP"});
 
     for(;;) {
         glfwPollEvents();
@@ -275,7 +272,7 @@ int main(int, char**) {
             framedata_buffer->bind(BufferUsage::Uniform, 0);
             glDrawArrays(GL_TRIANGLES, 0, 3);
 
-            if (!debug) {
+            if (!debug_texture) {
                 // Light culling
                 lc_material->bind();
                 main_framebuffer.bind(false);
@@ -359,10 +356,10 @@ int main(int, char**) {
             }
 
             if (ImGui::CollapsingHeader("Debug")) {
-                if (ImGui::Checkbox("Deferred rendering", &deferred_rendering) || (!deferred_rendering && debug_updated)) {
+                if (ImGui::Checkbox("Deferred rendering", &deferred_rendering) || (!deferred_rendering && debug_texture_updated)) {
                     current_pipeline = deferred_rendering ? DEFERRED_PIPELINE : FORWARD_PIPELINE;
                     auto result = Scene::from_gltf(current_scene->string(), current_pipeline,
-                        debug ? Span<const std::string>{debug_defines[debug_shader]} : Span<const std::string>{});
+                        debug_texture ? Span<const std::string>{debug_texture_defines[dbg_tex_idx]} : Span<const std::string>{});
                     if(!result.is_ok) {
                         std::cerr << "Unable to reload scene (" << current_scene->string() << ")" << std::endl;
                     } else {
@@ -378,24 +375,34 @@ int main(int, char**) {
 
                 ImGui::NewLine();
 
-                debug_updated = ImGui::Checkbox("Debug shader", &debug);
-                if (debug) {
-
-                    debug_updated |= ImGui::RadioButton("Albedo", &debug_shader, 0);
-                    debug_updated |= ImGui::RadioButton("Normal", &debug_shader, 1);
+                debug_texture_updated = ImGui::Checkbox("Debug textures", &debug_texture);
+                if (debug_texture) {
+                    debug_texture_updated |= ImGui::RadioButton("Albedo", &dbg_tex_idx, 0);
+                    debug_texture_updated |= ImGui::RadioButton("Normal", &dbg_tex_idx, 1);
                     if (deferred_rendering) {
-                        debug_updated |= ImGui::RadioButton("Depth", &debug_shader, 2);
+                        debug_texture_updated |= ImGui::RadioButton("Depth", &dbg_tex_idx, 2);
                     }
+                }
 
-                    ds_material->set_program(debug_programs[debug_shader]);
-                } else {
-                    ds_material->set_program(ds_program);
+                if (debug_texture_updated) {
+                    if (debug_texture) {
+                        auto defines = std::vector<std::string>{ debug_texture_defines[dbg_tex_idx] };
+                        auto debug_ds_program = Program::from_files("lit.frag", "screen.vert", defines);
+                        ds_material->set_program(debug_ds_program);
+                    } else {
+                        ds_material->set_program(ds_program);
+                    }
                 }
 
                 if (deferred_rendering && ImGui::Checkbox("Debug light culling", &debug_light_cull)) {
                     lc_material->set_program(debug_light_cull ? debug_lc_program : lc_program);
                     lc_material->set_depth_test_mode(debug_light_cull ? DepthTestMode::Standard : DepthTestMode::Reversed);
                 }
+                
+                if (ImGui::Checkbox("Debug shadow map", &debug_shadowmap)) {
+                    ds_material->set_program(debug_shadowmap ? debug_shdmap_program : ds_program);
+                }
+
                 ImGui::NewLine();
             }
         }

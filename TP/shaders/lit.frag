@@ -71,17 +71,17 @@ void main() {
 
     out_color = vec4(albedo * acc, 1.0);
 
-    // if (layer == 0) {
-    //     out_color *= vec4(1.0, 0.0, 0.0, 1.0);
-    // } else if (layer == 1) {
-    //     out_color *= vec4(0.0, 1.0, 0.0, 1.0);
-    // } else if (layer == 2) {
-    //     out_color *= vec4(0.0, 0.0, 1.0, 1.0);
-    // } else if (layer == 3) {
-    //     out_color *= vec4(1.0, 1.0, 0.0, 1.0);
-    // } else if (layer == 4) {
-    //     out_color *= vec4(0.0, 1.0, 1.0, 1.0);
-    // }
+#ifdef DEBUG_SHADOW_MAP
+    if (layer == 0) {
+        out_color = vec4(1.0, 0.0, 0.0, 1.0);
+    } else if (layer == 1) {
+        out_color = vec4(0.0, 1.0, 0.0, 1.0);
+    } else if (layer == 2) {
+        out_color = vec4(0.0, 0.0, 1.0, 1.0);
+    } else if (layer == 3) {
+        out_color = vec4(1.0, 1.0, 0.0, 1.0);
+    }
+#endif // DEBUG_SHADOW_MAP
 
 #else // LIGHT_CULL
     PointLight light = point_lights[instanceID];
