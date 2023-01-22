@@ -29,11 +29,11 @@ std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(cons
         mapping[0].window_size = window_size;
         mapping[0].camera.view_proj = camera.view_proj_matrix();
         mapping[0].point_light_count = u32(_point_lights.size());
-        mapping[0].sun_color = glm::vec3(1.0f, 1.0f, 1.0f);
+        mapping[0].sun_color = glm::vec3(1.0f, 0.8f, 0.4f);
         mapping[0].sun_dir = glm::normalize(_sun_direction);
 
         mapping[0].shadow_map_levels = 4;
-        const float depths[] = { 15.0f, 50.0f, 100.0f, 200.0f};
+        const float depths[] = { 5.0f, 20.0f, 60.0f, 200.0f};
         for (size_t i = 0; i != 4; ++i)
             mapping[0].depth_levels[i] = depths[i];
         mapping[0].sun_view_projs[0] = get_sun_view_proj(camera, 0.001f, depths[0]);
@@ -118,14 +118,16 @@ RenderInfo Scene::render(const Camera& camera) const {
 glm::mat4 Scene::get_sun_view_proj(const Camera &camera, const float near, const float far) const {
 
     auto camera_position = camera.position();
-    auto forward = _sun_direction;
+    auto forward = glm::normalize(_sun_direction);
     auto right = glm::cross(forward, glm::vec3(0, 1, 0));
     auto up = glm::cross(right, forward);
 
     // Tight ortho projection for sun shadowmap
     auto frustum = camera.build_frustum();
-    auto top_left = glm::cross(frustum._left_normal, frustum._top_normal);
-    auto top_left_far = camera_position + top_left * far;
+    auto top_left = glm::normalize(glm::cross(frustum._left_normal, frustum._top_normal));
+
+    auto top_left_distance = far / glm::dot(top_left, camera.forward());
+    auto top_left_far = camera_position + top_left * top_left_distance;
 
     auto frustum_center = camera.forward() * (near + (far - near) * 0.5f) + camera_position;
     auto radius = glm::length(frustum_center - glm::vec3(top_left_far));

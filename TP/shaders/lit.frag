@@ -20,7 +20,7 @@ layout(binding = 1) buffer PointLights {
     PointLight point_lights[];
 };
 
-const vec3 ambient = vec3(0.02);
+const vec3 ambient = vec3(0.08, 0.06, 0.05) * 1.5;
 
 float light_contribution(PointLight light, vec3 frag_pos, vec3 normal) {
     const vec3 to_light = (light.position - frag_pos);
@@ -53,10 +53,10 @@ void main() {
     // Check if the fragment is in the shadow
     vec3 acc = ambient;
 
-    // FIXME: inverted layer selection from depth
+    float z_camera = 0.001 / depth;
     uint layer = frame.shadow_map_levels - 1;
     for (uint i = 0; i < frame.shadow_map_levels; i++) {
-        if (depth * 1e6 < frame.depth_levels[i]) {
+        if (z_camera < frame.depth_levels[i]) {
             layer = i;
             break;
         }
@@ -70,6 +70,18 @@ void main() {
     }
 
     out_color = vec4(albedo * acc, 1.0);
+
+    // if (layer == 0) {
+    //     out_color *= vec4(1.0, 0.0, 0.0, 1.0);
+    // } else if (layer == 1) {
+    //     out_color *= vec4(0.0, 1.0, 0.0, 1.0);
+    // } else if (layer == 2) {
+    //     out_color *= vec4(0.0, 0.0, 1.0, 1.0);
+    // } else if (layer == 3) {
+    //     out_color *= vec4(1.0, 1.0, 0.0, 1.0);
+    // } else if (layer == 4) {
+    //     out_color *= vec4(0.0, 1.0, 1.0, 1.0);
+    // }
 
 #else // LIGHT_CULL
     PointLight light = point_lights[instanceID];
