@@ -33,5 +33,8 @@ void main() {
 
 #ifdef TEXTURED
     out_albedo *= texture(in_texture, in_uv);
+    if (out_albedo.a < 0.5) {
+        discard;
+    }
 #endif
 }
