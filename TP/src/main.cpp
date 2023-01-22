@@ -174,10 +174,12 @@ int main(int, char**) {
     auto shadowmap_size = glm::vec2(2000, 2000);
     auto shadowmap_levels = 4;
     auto shadowmap_texture = std::make_shared<Texture2DArray>(glm::vec3(shadowmap_size, shadowmap_levels), ImageFormat::Depth32_FLOAT);
-    shadowmap_texture->set_parameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    shadowmap_texture->set_parameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    shadowmap_texture->set_parameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    shadowmap_texture->set_parameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    shadowmap_texture->set_parameter(GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    shadowmap_texture->set_parameter(GL_TEXTURE_COMPARE_FUNC, GL_GEQUAL);
     float border_color[] = {0.0f, 0.0f, 0.0f, 0.0f};
     shadowmap_texture->set_parameter(GL_TEXTURE_BORDER_COLOR, border_color);
     Framebuffer shadowmap_framebuffer(shadowmap_texture.get());

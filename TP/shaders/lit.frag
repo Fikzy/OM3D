@@ -10,7 +10,7 @@ layout(location = 6) flat in int instanceID;
 layout(binding = 0) uniform sampler2D in_albedo_texture;
 layout(binding = 1) uniform sampler2D in_normal_texture;
 layout(binding = 2) uniform sampler2D in_depth_texture;
-layout(binding = 3) uniform sampler2DArray in_shadow_textures;
+layout(binding = 3) uniform sampler2DArrayShadow in_shadow_textures;
 
 layout(binding = 0) uniform Data {
     FrameData frame;
@@ -63,12 +63,19 @@ void main() {
     }
 
     vec4 shadow_coord = frame.sun_view_projs[layer] * vec4(position, 1.0);
-    vec3 shadow_texture_coord = vec3((shadow_coord.xy + 1) / 2, layer);
-    float shadow_depth = texture(in_shadow_textures, shadow_texture_coord).r;
-    if (shadow_depth <= shadow_coord.z) {
-        acc += frame.sun_color * max(0.0, dot(frame.sun_dir, normal));
-    }
+    vec4 shadow_texture_coord = vec4((shadow_coord.xy + 1) / 2, layer, shadow_coord.z);
 
+    float shadow_factor = 0.0;
+    float texel_size = 1.0 / textureSize(in_shadow_textures, 0).x;
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            vec4 offset = vec4(texel_size * i, texel_size * j, 0.0, 0.0);
+            shadow_factor += texture(in_shadow_textures, shadow_texture_coord + offset).r;
+        }
+    }
+    shadow_factor /= 9.0;
+
+    acc += shadow_factor * frame.sun_color * max(0.0, dot(frame.sun_dir, normal));
     out_color = vec4(albedo * acc, 1.0);
 
 #ifdef DEBUG_SHADOW_MAP
