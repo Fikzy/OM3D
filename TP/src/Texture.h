@@ -5,6 +5,7 @@
 #include <ImageFormat.h>
 
 #include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 
 #include <vector>
 #include <memory>
@@ -42,12 +43,27 @@ class Texture {
         void set_parameter(int pname, int param);
         void set_parameter(int pname, float* param);
 
-    private:
+    protected:
+        Texture(int handle, const glm::uvec2 &size, ImageFormat format);
+
+    protected:
         friend class Framebuffer;
 
         GLHandle _handle;
         glm::uvec2 _size = {};
         ImageFormat _format;
+};
+
+class Texture2DArray : public Texture {
+    public:
+        Texture2DArray() = default;
+        Texture2DArray(Texture2DArray&&) = default;
+        Texture2DArray& operator=(Texture2DArray&&) = default;
+
+        Texture2DArray(const glm::uvec3 &size, ImageFormat format);
+
+    protected:
+        glm::uvec3 _size = {};
 };
 
 }

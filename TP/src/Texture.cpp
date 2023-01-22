@@ -33,9 +33,9 @@ Result<TextureData> TextureData::from_file(const std::string& file) {
 
 
 
-static GLuint create_texture_handle() {
+static GLuint create_texture_handle(const GLenum type = GL_TEXTURE_2D) {
     GLuint handle = 0;
-    glCreateTextures(GL_TEXTURE_2D, 1, &handle);
+    glCreateTextures(type, 1, &handle);
     return handle;
 }
 
@@ -57,6 +57,21 @@ Texture::Texture(const glm::uvec2 &size, ImageFormat format) :
 
     const ImageFormatGL gl_format = image_format_to_gl(_format);
     glTextureStorage2D(_handle.get(), 1, gl_format.internal_format, _size.x, _size.y);
+}
+
+Texture::Texture(int handle, const glm::uvec2& size, ImageFormat format) :
+    _handle(handle),
+    _size(size),
+    _format(format) {
+}
+
+Texture2DArray::Texture2DArray(const glm::uvec3 &size, ImageFormat format) : Texture(
+    create_texture_handle(GL_TEXTURE_2D_ARRAY),
+    glm::uvec2(size.x, size.y),
+    format) {
+
+    const ImageFormatGL gl_format = image_format_to_gl(_format);
+    glTextureStorage3D(_handle.get(), 1, gl_format.internal_format, size.x, size.y, size.z);
 }
 
 Texture::~Texture() {

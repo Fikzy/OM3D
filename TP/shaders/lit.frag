@@ -10,7 +10,7 @@ layout(location = 6) flat in int instanceID;
 layout(binding = 0) uniform sampler2D in_albedo_texture;
 layout(binding = 1) uniform sampler2D in_normal_texture;
 layout(binding = 2) uniform sampler2D in_depth_texture;
-layout(binding = 3) uniform sampler2D in_shadow_texture;
+layout(binding = 3) uniform sampler2DArray in_shadow_textures;
 
 layout(binding = 0) uniform Data {
     FrameData frame;
@@ -53,9 +53,18 @@ void main() {
     // Check if the fragment is in the shadow
     vec3 acc = ambient;
 
-    vec4 shadow_coord = frame.sun_view_proj * vec4(position, 1.0);
-    vec2 shadow_texture_coord = (shadow_coord.xy + 1) / 2;
-    float shadow_depth = texture(in_shadow_texture, shadow_texture_coord).r;
+    // FIXME: inverted layer selection from depth
+    uint layer = frame.shadow_map_levels - 1;
+    for (uint i = 0; i < frame.shadow_map_levels; i++) {
+        if (depth * 1e6 < frame.depth_levels[i]) {
+            layer = i;
+            break;
+        }
+    }
+
+    vec4 shadow_coord = frame.sun_view_projs[layer] * vec4(position, 1.0);
+    vec3 shadow_texture_coord = vec3((shadow_coord.xy + 1) / 2, layer);
+    float shadow_depth = texture(in_shadow_textures, shadow_texture_coord).r;
     if (shadow_depth <= shadow_coord.z) {
         acc += frame.sun_color * max(0.0, dot(frame.sun_dir, normal));
     }
@@ -83,6 +92,6 @@ void main() {
     else
         out_color = vec4(albedo, 1.0);
 #elif DEBUG_DEPTH
-    out_color = vec4(vec3(depth * 10000.0), 1.0);
+    out_color = vec4(vec3(depth * 1e4), 1.0);
 #endif
 }

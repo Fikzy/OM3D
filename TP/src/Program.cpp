@@ -134,6 +134,24 @@ Program::Program(const std::string& frag, const std::string& vert) : _handle(glC
     fetch_uniform_locations();
 }
 
+Program::Program(const std::string& frag, const std::string& vert, const std::string& geom) : _handle(glCreateProgram()) {
+    const GLuint vert_handle = create_shader(vert, GL_VERTEX_SHADER);
+    const GLuint frag_handle = create_shader(frag, GL_FRAGMENT_SHADER);
+    const GLuint geom_handle = create_shader(geom, GL_GEOMETRY_SHADER);
+
+    glAttachShader(_handle.get(), vert_handle);
+    glAttachShader(_handle.get(), frag_handle);
+    glAttachShader(_handle.get(), geom_handle);
+
+    link_program(_handle.get());
+
+    glDeleteShader(vert_handle);
+    glDeleteShader(frag_handle);
+    glDeleteShader(geom_handle);
+
+    fetch_uniform_locations();
+}
+
 Program::Program(const std::string& comp) : _handle(glCreateProgram()), _is_compute(true) {
     const GLuint comp_handle = create_shader(comp, GL_COMPUTE_SHADER);
 
@@ -206,6 +224,23 @@ std::shared_ptr<Program> Program::from_files(const std::string& frag, const std:
     auto program = weak_program.lock();
     if(!program) {
         program = std::make_shared<Program>(read_shader(frag, defines), read_shader(vert, defines));
+        weak_program = program;
+    }
+    return program;
+}
+
+std::shared_ptr<Program> Program::from_files(const std::string& frag, const std::string& vert, const std::string& geom, Span<const std::string> defines) {
+    static std::unordered_map<std::vector<std::string>, std::weak_ptr<Program>, CollectionHasher<std::vector<std::string>>> loaded;
+
+    std::vector<std::string> key(defines.begin(), defines.end());
+    key.emplace_back(frag);
+    key.emplace_back(vert);
+    key.emplace_back(geom);
+
+    auto& weak_program = loaded[key];
+    auto program = weak_program.lock();
+    if(!program) {
+        program = std::make_shared<Program>(read_shader(frag, defines), read_shader(vert, defines), read_shader(geom, defines));
         weak_program = program;
     }
     return program;

@@ -171,16 +171,17 @@ int main(int, char**) {
 
     // Shadowmap setup
     auto shadowmap_size = glm::vec2(2000, 2000);
-    auto shadowmap_texture = std::make_shared<Texture>(shadowmap_size, ImageFormat::Depth32_FLOAT);
+    auto shadowmap_levels = 4;
+    auto shadowmap_texture = std::make_shared<Texture2DArray>(glm::vec3(shadowmap_size, shadowmap_levels), ImageFormat::Depth32_FLOAT);
     shadowmap_texture->set_parameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     shadowmap_texture->set_parameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     shadowmap_texture->set_parameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     float border_color[] = {0.0f, 0.0f, 0.0f, 0.0f};
     shadowmap_texture->set_parameter(GL_TEXTURE_BORDER_COLOR, border_color);
-    auto shadowmap_framebuffer = Framebuffer(shadowmap_texture.get());
+    Framebuffer shadowmap_framebuffer(shadowmap_texture.get());
 
-    auto shadowmap_program = Program::from_files("shadowmap.frag", "shadowmap.vert");
+    auto shadowmap_program = Program::from_files("shadowmap.frag", "shadowmap.vert", "shadowmap.geom");
     auto shadowmap_material = std::make_shared<Material>();
     shadowmap_material->set_program(shadowmap_program);
 
@@ -203,7 +204,7 @@ int main(int, char**) {
     ds_material->set_depth_test_mode(DepthTestMode::None);
     ds_material->set_depth_writing(false);
 
-    auto lc_program = Program::from_files("lit.frag", "basic.vert", {"LIGHT_CULL"});
+    auto lc_program = Program::from_files("lit.frag", "basic.vert", std::vector<std::string>{"LIGHT_CULL"});
     auto lc_material = std::make_shared<Material>();
     lc_material->set_program(lc_program);
     lc_material->set_texture(0u, albedo);
@@ -218,9 +219,9 @@ int main(int, char**) {
     Framebuffer tonemap_framebuffer(nullptr, std::array{color.get()});
 
     auto debug_programs = std::array{
-        Program::from_files("lit.frag", "screen.vert", {"DEBUG_ALBEDO"}),
-        Program::from_files("lit.frag", "screen.vert", {"DEBUG_NORMAL"}),
-        Program::from_files("lit.frag", "screen.vert", {"DEBUG_DEPTH"}),
+        Program::from_files("lit.frag", "screen.vert", std::vector<std::string>{"DEBUG_ALBEDO"}),
+        Program::from_files("lit.frag", "screen.vert", std::vector<std::string>{"DEBUG_NORMAL"}),
+        Program::from_files("lit.frag", "screen.vert", std::vector<std::string>{"DEBUG_DEPTH"}),
     };
     auto debug_defines = std::array{
         "DEBUG_ALBEDO",
