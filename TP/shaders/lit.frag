@@ -65,13 +65,13 @@ void main() {
 
     float shadow_factor = 0.0;
     float texel_size = 1.0 / textureSize(in_shadow_textures, 0).x;
-    for (int i = -1; i <= 1; i++) {
-        for (int j = -1; j <= 1; j++) {
+    for (int i = -2; i <= 2; i++) {
+        for (int j = -2; j <= 2; j++) {
             vec4 offset = vec4(texel_size * i, texel_size * j, 0.0, 0.0);
             shadow_factor += texture(in_shadow_textures, shadow_texture_coord + offset).r;
         }
     }
-    shadow_factor /= 9.0;
+    shadow_factor /= 25.0;
 
     shadow_factor = mix(0.1, 1.0, shadow_factor); // fake global illumination
 
