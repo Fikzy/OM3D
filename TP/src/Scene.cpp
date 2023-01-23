@@ -28,6 +28,8 @@ std::shared_ptr<TypedBuffer<shader::FrameData>> Scene::get_framedata_buffer(cons
         auto mapping = buffer->map(AccessType::WriteOnly);
         mapping[0].window_size = window_size;
         mapping[0].camera.view_proj = camera.view_proj_matrix();
+        mapping[0].point_light_count = u32(_point_lights.size());
+
         mapping[0].ambient = _ambient;
         mapping[0].sun_color = _sun_color;
         mapping[0].sun_dir = glm::normalize(_sun_direction);
@@ -156,7 +158,7 @@ glm::mat4 Scene::get_sun_view_proj(const Camera &camera, const float near, const
 }
 
 RenderInfo Scene::render_sun_shadowmap(const Camera &camera) const {
-    // TODO: frustum culling
+
     auto map = std::unordered_map<size_t, std::vector<const SceneObject*>>();
 
     for (const auto &obj : _objects) {
@@ -180,8 +182,6 @@ RenderInfo Scene::render_sun_shadowmap(const Camera &camera) const {
         }
         transform_buffer->bind(BufferUsage::Storage, 2);
 
-        // auto material = objects[0]->get_material();
-        // material->bind();
         auto mesh = objects[0]->get_mesh();
         mesh->draw_instanced(objects.size());
     }

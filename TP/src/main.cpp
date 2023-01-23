@@ -367,7 +367,7 @@ int main(int, char**) {
                 ImGui::NewLine();
             }
 
-            if (ImGui::CollapsingHeader("Render info", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (ImGui::CollapsingHeader("Render info")) {
                 ImGui::Text("  - camera position: (x: %.2f, y: %.2f, z: %.2f)", scene_view.camera().position().x, scene_view.camera().position().y, scene_view.camera().position().z);
                 ImGui::Text("  - scene objects: %zu", render_info.scene_objects);
                 ImGui::Text("  - draw instanced calls: %zu", render_info.draw_instanced_calls);
@@ -385,6 +385,9 @@ int main(int, char**) {
                         std::cerr << "Unable to reload scene (" << current_scene->string() << ")" << std::endl;
                     } else {
                         scene = std::move(result.value);
+                        scene->set_ambient(glm::vec3(ambient_intensity));
+                        scene->set_sun_direction(sun_direction);
+                        scene->set_sun_color(sun_color * sun_intensity);
                         scene_view.set_scene(scene.get());
                         std::cout << "Set rendering pipeline to: {\"" << current_pipeline.first << "\", \"" << current_pipeline.second << "\"}" << std::endl;
                     }
