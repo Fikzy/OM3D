@@ -10,7 +10,7 @@ layout(binding = 0) uniform Data {
 };
 
 void main() {
-    for (int i = 0; i < frame.shadow_map_levels; i++) {
+    for (int i = 0; i < gl_in.length(); i++) {
         gl_Position = frame.sun_view_projs[gl_InvocationID] * gl_in[i].gl_Position;
         gl_Layer = gl_InvocationID;
         EmitVertex();
